@@ -10,47 +10,34 @@ env:
   NOSANA_API_KEY: ${{ secrets.NOSANA_API_KEY }}
 
 jobs:
-  # build-android:
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 30
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     
-  #     - name: Set up JDK 17
-  #       uses: actions/setup-java@v4
-  #       with:
-  #         java-version: '17'
-  #         distribution: 'temurin'
-  #     
-  #     - name: Make gradlew executable
-  #       working-directory: ./android
-  #       run: chmod +x gradlew
-  #     
-  #     - name: Setup Gradle
-  #       uses: gradle/gradle-build-action@v3
-  #       with:
-  #         gradle-version: 8.9
-  #     
-  #     - name: Build Android APK
-  #       working-directory: ./android
-  #       run: ./gradlew assembleRelease --no-daemon --stacktrace
-  #     
-  #     - name: Upload APK Artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: android-apk
-  #         path: android/app/build/outputs/apk/release/app-release.apk
-  #     
-  #     - name: Create Release
-  #       if: github.ref == 'refs/heads/main'
-  #       uses: softprops/action-gh-release@v1
-  #       with:
-  #         tag_name: v${{ github.run_number }}
-  #         name: Release v${{ github.run_number }}
-  #         files: android/app/build/outputs/apk/release/app-release.apk
-  #         generate_release_notes: true
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build Android APK
+        uses: sparkfabrik/android-build-action@v1.5.0
+        with:
+          project-path: android
+          output-path: app-release.apk
+      
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: app-release.apk
+      
+      - name: Create Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          files: app-release.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-and-deploy-agent:
     runs-on: ubuntu-latest
