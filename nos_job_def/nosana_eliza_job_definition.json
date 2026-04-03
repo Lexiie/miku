@@ -1,0 +1,24 @@
+{
+  "version": "0.1",
+  "type": "container",
+  "meta": {
+    "trigger": "cli"
+  },
+  "ops": [
+    {
+      "type": "container/run",
+      "id": "android-agent",
+      "args": {
+        "image": "yourusername/miku:latest",
+        "ports": ["3000:3000"],
+        "env": {
+          "OPENAI_API_KEY": "nosana",
+          "OPENAI_API_URL": "https://6vq2bcqphcansrs9b88ztxfs88oqy7etah2ugudytv2x.node.k8s.prd.nos.ci/v1",
+          "MODEL_NAME": "Qwen3.5-27B-AWQ-4bit",
+          "SERVER_PORT": "3000",
+          "NODE_ENV": "production"
+        }
+      }
+    }
+  ]
+}
