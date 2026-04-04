@@ -217,11 +217,16 @@ The parser handles:
 
 ### Communication Protocol
 
+**Health Check:**
+```http
+GET /health
+```
+
 **Request:**
 ```json
 POST /api/chat
 {
-  "text": "Set alarm for 7 AM",
+  "text": "Set alarm for 7 AM and turn on WiFi",
   "userId": "android_user"
 }
 ```
@@ -229,7 +234,7 @@ POST /api/chat
 **Response:**
 ```json
 {
-  "text": "⏰ Alarm set for 7:00 AM",
+  "text": "Alarm ready for 07:00. WiFi will be turned on",
   "actions": [
     {
       "type": "SET_ALARM",
@@ -238,12 +243,18 @@ POST /api/chat
         "minute": 0,
         "label": "Alarm"
       }
+    },
+    {
+      "type": "TOGGLE_WIFI",
+      "params": {
+        "enable": true
+      }
     }
   ]
 }
 ```
 
-The Android app executes each action sequentially and displays results in the chat.
+The Android app checks `/health` before connecting, executes each action sequentially, and displays follow-up status updates in the chat for async actions such as location lookup.
 
 ### State Management
 
@@ -251,7 +262,7 @@ Miku uses **Jetpack Compose + ViewModel** for reactive UI:
 
 - `ChatViewModel` — Manages messages, connection state, API calls
 - `AutomationExecutor` — Stateless executor for Android APIs
-- `ApiClient` — Retrofit HTTP client with automatic retry
+- `ApiClient` — Retrofit HTTP client with URL normalization and health checks
 
 No local storage needed—all state is ephemeral. Privacy by design.
 
@@ -262,9 +273,10 @@ No local storage needed—all state is ephemeral. Privacy by design.
 ```
 miku/
 ├── src/                                    # ElizaOS Agent
+│   ├── parser.ts                          # Shared natural-language -> action parser
 │   ├── actions/
-│   │   └── androidAutomation.ts           # Intent parser (17 actions)
-│   ├── api.ts                             # REST API endpoint
+│   │   └── androidAutomation.ts           # Eliza action wrapper for parser output
+│   ├── api.ts                             # Plugin routes (/api/chat, /health)
 │   └── index.ts                           # Plugin entry point
 │
 ├── android/                                # Android App
@@ -272,11 +284,12 @@ miku/
 │   │   ├── build.gradle.kts               # Build config
 │   │   └── src/main/
 │   │       ├── AndroidManifest.xml        # Permissions & config
-│   │       ├── java/com/miku/agent/
+│   │       ├── java/com/miku/
 │   │       │   ├── MainActivity.kt        # Compose UI
 │   │       │   ├── ChatViewModel.kt       # State management
 │   │       │   ├── ApiClient.kt           # HTTP client
 │   │       │   ├── AutomationExecutor.kt  # Android API executor
+│   │       │   ├── ReminderReceiver.kt    # Reminder notifications
 │   │       │   └── Models.kt              # Data classes
 │   │       └── res/
 │   │           ├── values/strings.xml
@@ -507,14 +520,13 @@ Edit `characters/android.character.json`:
 
 ### Add New Actions
 
-**1. Add to Intent Parser** (`src/actions/androidAutomation.ts`):
+**1. Add to shared parser** (`src/parser.ts`):
 ```typescript
-else if (userText.includes("screenshot")) {
-  response.actions.push({
+if (lowerText.includes("screenshot")) {
+  pushAction(actions, {
     type: "TAKE_SCREENSHOT",
     params: {}
   });
-  response.text = "📸 Screenshot taken";
 }
 ```
 
@@ -559,7 +571,7 @@ Update `characters/android.character.json`:
 - **Runtime:** Node.js 23
 - **LLM:** Qwen3.5-27B (27B parameters, AWQ 4-bit quantization)
 - **Inference:** Nosana decentralized GPU network
-- **API:** Express.js REST endpoint
+- **API:** ElizaOS plugin routes (`/api/chat`, `/health`)
 - **Container:** Docker
 
 ### Frontend (Android App)
@@ -601,8 +613,8 @@ Update `characters/android.character.json`:
 
 Contributions welcome! Areas for improvement:
 
-- [ ] Voice input integration (SpeechRecognizer)
-- [ ] Multi-step action sequences
+- [x] Voice input integration (SpeechRecognizer)
+- [x] Multi-step action sequences
 - [ ] Action history & undo
 - [ ] Widget support
 - [ ] Tasker integration

@@ -5,10 +5,14 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.POST
 import java.util.concurrent.TimeUnit
 
 interface AgentApi {
+    @GET("/health")
+    suspend fun health(): HealthResponse
+
     @POST("/api/chat")
     suspend fun sendMessage(@Body request: AgentRequest): AgentResponse
 }
@@ -16,7 +20,19 @@ interface AgentApi {
 object ApiClient {
     private var retrofit: Retrofit? = null
     
+    fun normalizeBaseUrl(url: String): String {
+        val trimmed = url.trim()
+        val withScheme = if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            trimmed
+        } else {
+            "https://$trimmed"
+        }
+
+        return if (withScheme.endsWith("/")) withScheme else "$withScheme/"
+    }
+
     fun setBaseUrl(url: String) {
+        val normalizedUrl = normalizeBaseUrl(url)
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
@@ -28,7 +44,7 @@ object ApiClient {
             .build()
         
         retrofit = Retrofit.Builder()
-            .baseUrl(url)
+            .baseUrl(normalizedUrl)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

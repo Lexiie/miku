@@ -5,9 +5,13 @@ on:
     branches: [ main, elizaos-challenge ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/miku
   NOSANA_API_KEY: ${{ secrets.NOSANA_API_KEY }}
+  LLM_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.OPENAI_API_KEY }}
 
 jobs:
   build-android:
@@ -20,6 +24,7 @@ jobs:
         uses: sparkfabrik/android-build-action@v1.5.0
         with:
           project-path: android
+          gradle-task: assembleRelease
           output-path: app-release.apk
       
       - name: Upload APK Artifact
@@ -66,6 +71,35 @@ jobs:
       
       - name: Install Nosana CLI
         run: npm install -g @nosana/cli
+
+      - name: Validate Gemini API key
+        run: |
+          test -n "${{ env.LLM_API_KEY }}" || {
+            echo "GEMINI_API_KEY or OPENAI_API_KEY secret is required for deployment";
+            exit 1;
+          }
+
+      - name: Sync deployment config
+        run: |
+          tmp_file=$(mktemp)
+          jq \
+            --arg image "${{ env.DOCKER_IMAGE }}:latest" \
+            --arg apiKey "${{ env.LLM_API_KEY }}" \
+            --arg baseUrl "https://generativelanguage.googleapis.com/v1beta/openai" \
+            --arg smallModel "gemini-2.5-flash" \
+            --arg largeModel "gemini-2.5-flash" \
+            --arg embeddingModel "gemini-embedding-001" \
+            --arg embeddingDimensions "1536" \
+            '
+              .ops[0].args.image = $image
+              | .ops[0].args.env.OPENAI_API_KEY = $apiKey
+              | .ops[0].args.env.OPENAI_BASE_URL = $baseUrl
+              | .ops[0].args.env.OPENAI_SMALL_MODEL = $smallModel
+              | .ops[0].args.env.OPENAI_LARGE_MODEL = $largeModel
+              | .ops[0].args.env.OPENAI_EMBEDDING_MODEL = $embeddingModel
+              | .ops[0].args.env.OPENAI_EMBEDDING_DIMENSIONS = $embeddingDimensions
+            ' ./nos_job_def/nosana_eliza_job_definition.json > "$tmp_file"
+          mv "$tmp_file" ./nos_job_def/nosana_eliza_job_definition.json
       
       - name: Deploy to Nosana
         run: |

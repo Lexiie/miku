@@ -9,12 +9,15 @@
       "type": "container/run",
       "id": "android-agent",
       "args": {
-        "image": "yourusername/miku:latest",
+        "image": "lexiisme/miku:latest",
         "ports": ["3000:3000"],
         "env": {
-          "OPENAI_API_KEY": "nosana",
-          "OPENAI_API_URL": "https://6vq2bcqphcansrs9b88ztxfs88oqy7etah2ugudytv2x.node.k8s.prd.nos.ci/v1",
-          "MODEL_NAME": "Qwen3.5-27B-AWQ-4bit",
+          "OPENAI_API_KEY": "set-at-deploy-time",
+          "OPENAI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
+          "OPENAI_SMALL_MODEL": "gemini-2.5-flash",
+          "OPENAI_LARGE_MODEL": "gemini-2.5-flash",
+          "OPENAI_EMBEDDING_MODEL": "gemini-embedding-001",
+          "OPENAI_EMBEDDING_DIMENSIONS": "1536",
           "SERVER_PORT": "3000",
           "NODE_ENV": "production"
         }

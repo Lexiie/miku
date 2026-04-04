@@ -13,18 +13,42 @@ class ChatViewModel : ViewModel() {
     
     var isConnected by mutableStateOf(false)
         private set
+
+    var isConnecting by mutableStateOf(false)
+        private set
     
     var agentUrl by mutableStateOf("")
     
     fun connect(url: String) {
-        agentUrl = url
-        ApiClient.setBaseUrl(url)
-        isConnected = true
-        addMessage("✅ Connected to agent", false)
+        val normalizedUrl = ApiClient.normalizeBaseUrl(url)
+        agentUrl = normalizedUrl
+        ApiClient.setBaseUrl(normalizedUrl)
+        isConnecting = true
+
+        viewModelScope.launch {
+            try {
+                val api = ApiClient.getApi() ?: error("Agent client unavailable")
+                val health = api.health()
+
+                if (health.status == "ok") {
+                    isConnected = true
+                    addMessage("✅ Connected to agent", false)
+                } else {
+                    isConnected = false
+                    addMessage("❌ Agent health check failed", false)
+                }
+            } catch (e: Exception) {
+                isConnected = false
+                addMessage("❌ Connection error: ${e.message}", false)
+            } finally {
+                isConnecting = false
+            }
+        }
     }
     
     fun disconnect() {
         isConnected = false
+        isConnecting = false
         addMessage("❌ Disconnected", false)
     }
     
@@ -42,7 +66,9 @@ class ChatViewModel : ViewModel() {
                 addMessage(response.text, false)
                 
                 response.actions.forEach { action ->
-                    val result = executor.execute(action)
+                    val result = executor.execute(action) { update ->
+                        addMessage("⚡ ${action.type}: $update", false)
+                    }
                     addMessage("⚡ ${action.type}: $result", false)
                 }
             } catch (e: Exception) {
