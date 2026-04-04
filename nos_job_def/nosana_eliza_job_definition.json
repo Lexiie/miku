@@ -10,7 +10,7 @@
       "id": "android-agent",
       "args": {
         "image": "lexiisme/miku:latest",
-        "ports": ["3000:3000"],
+        "expose": 3000,
         "env": {
           "OPENAI_API_KEY": "set-at-deploy-time",
           "OPENAI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai",

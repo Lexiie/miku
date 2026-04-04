@@ -11,7 +11,7 @@ permissions:
 env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/miku
   NOSANA_API_KEY: ${{ secrets.NOSANA_API_KEY }}
-  LLM_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.OPENAI_API_KEY }}
+  LLM_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
 jobs:
   build-android:
@@ -77,7 +77,7 @@ jobs:
       - name: Validate Gemini API key
         run: |
           test -n "${{ env.LLM_API_KEY }}" || {
-            echo "GEMINI_API_KEY or OPENAI_API_KEY secret is required for deployment";
+            echo "GEMINI_API_KEY secret is required for deployment";
             exit 1;
           }
 
