@@ -12,6 +12,8 @@ env:
   DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/miku
   NOSANA_API_KEY: ${{ secrets.NOSANA_API_KEY }}
   LLM_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+  NOSANA_API_BASE: https://dashboard.k8s.prd.nos.ci/api
+  NOSANA_MARKET_FILTER: 3090
 
 jobs:
   build-android:
@@ -19,15 +21,30 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Build Android APK
-        uses: sparkfabrik/android-build-action@v1.5.0
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
-          project-path: android
-          gradle-task: assembleRelease
-          output-path: app-release.apk
-          ruby-version: "3.3"
-          bundler-version: "2.7.2"
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build Android APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Normalize APK artifact
+        run: |
+          apk_path=$(find android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          test -n "$apk_path" || {
+            echo "Release APK not found";
+            exit 1;
+          }
+          cp "$apk_path" app-release.apk
       
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -71,9 +88,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
-      - name: Install Nosana CLI
-        run: npm install -g @nosana/cli
-
       - name: Validate Gemini API key
         run: |
           test -n "${{ env.LLM_API_KEY }}" || {
@@ -81,9 +95,30 @@ jobs:
             exit 1;
           }
 
-      - name: Sync deployment config
+      - name: Resolve market address
+        id: resolve-market
         run: |
-          tmp_file=$(mktemp)
+          response=$(curl -sS \
+            -H "Authorization: Bearer ${{ env.NOSANA_API_KEY }}" \
+            "${{ env.NOSANA_API_BASE }}/markets/")
+          market_address=$(printf '%s' "$response" | jq -r --arg filter "${{ env.NOSANA_MARKET_FILTER }}" '
+            map(select(
+              ((.name // "") | ascii_downcase | contains($filter))
+              or ((.gpu // "") | ascii_downcase | contains($filter))
+            ))
+            | .[0].address // empty
+          ')
+          test -n "$market_address" || {
+            echo "Unable to resolve Nosana market address for filter: ${{ env.NOSANA_MARKET_FILTER }}"
+            echo "$response"
+            exit 1
+          }
+          echo "market_address=$market_address" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare deployment payload
+        id: payload
+        run: |
+          tmp_job_definition=$(mktemp)
           jq \
             --arg image "${{ env.DOCKER_IMAGE }}:latest" \
             --arg apiKey "${{ env.LLM_API_KEY }}" \
@@ -100,13 +135,48 @@ jobs:
               | .ops[0].args.env.OPENAI_LARGE_MODEL = $largeModel
               | .ops[0].args.env.OPENAI_EMBEDDING_MODEL = $embeddingModel
               | .ops[0].args.env.OPENAI_EMBEDDING_DIMENSIONS = $embeddingDimensions
-            ' ./nos_job_def/nosana_eliza_job_definition.json > "$tmp_file"
-          mv "$tmp_file" ./nos_job_def/nosana_eliza_job_definition.json
+            ' ./nos_job_def/nosana_eliza_job_definition.json > "$tmp_job_definition"
+
+          payload_file=$(mktemp)
+          jq -n \
+            --arg name "miku-${GITHUB_SHA::7}" \
+            --arg market "${{ steps.resolve-market.outputs.market_address }}" \
+            --argjson timeout 300 \
+            --argjson replicas 1 \
+            --arg strategy "SIMPLE" \
+            --slurpfile job "$tmp_job_definition" \
+            '{
+              name: $name,
+              market: $market,
+              timeout: $timeout,
+              replicas: $replicas,
+              strategy: $strategy,
+              job_definition: $job[0]
+            }' > "$payload_file"
+
+          echo "payload_file=$payload_file" >> "$GITHUB_OUTPUT"
       
-      - name: Deploy to Nosana
+      - name: Create deployment
+        id: create-deployment
         run: |
-          nosana job post \
-            --file ./nos_job_def/nosana_eliza_job_definition.json \
-            --market nvidia-3090 \
-            --timeout 300 \
-            --api ${{ env.NOSANA_API_KEY }}
+          response=$(curl -sS \
+            -X POST \
+            -H "Authorization: Bearer ${{ env.NOSANA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            --data @"${{ steps.payload.outputs.payload_file }}" \
+            "${{ env.NOSANA_API_BASE }}/deployments/create")
+          deployment_id=$(printf '%s' "$response" | jq -r '.id // .deployment.id // empty')
+          test -n "$deployment_id" || {
+            echo "Failed to create deployment"
+            echo "$response"
+            exit 1
+          }
+          echo "deployment_id=$deployment_id" >> "$GITHUB_OUTPUT"
+
+      - name: Start deployment
+        run: |
+          curl -sS \
+            -X POST \
+            -H "Authorization: Bearer ${{ env.NOSANA_API_KEY }}" \
+            "${{ env.NOSANA_API_BASE }}/deployments/${{ steps.create-deployment.outputs.deployment_id }}/start" \
+            | jq .
