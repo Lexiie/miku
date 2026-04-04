@@ -14,6 +14,7 @@ env:
   LLM_API_KEY: ${{ secrets.GEMINI_API_KEY }}
   NOSANA_API_BASE: https://dashboard.k8s.prd.nos.ci/api
   NOSANA_MARKET_FILTER: 3090
+  NOSANA_MARKET_TYPE: PREMIUM
 
 jobs:
   build-android:
@@ -101,15 +102,20 @@ jobs:
           response=$(curl -sS \
             -H "Authorization: Bearer ${{ env.NOSANA_API_KEY }}" \
             "${{ env.NOSANA_API_BASE }}/markets/")
-          market_address=$(printf '%s' "$response" | jq -r --arg filter "${{ env.NOSANA_MARKET_FILTER }}" '
+          market_address=$(printf '%s' "$response" | jq -r --arg filter "${{ env.NOSANA_MARKET_FILTER }}" --arg marketType "${{ env.NOSANA_MARKET_TYPE }}" '
             map(select(
-              ((.name // "") | ascii_downcase | contains($filter))
-              or ((.gpu // "") | ascii_downcase | contains($filter))
+              (.type == $marketType)
+              and
+              (
+                ((.name // "") | ascii_downcase | contains($filter))
+                or
+                ((.gpu // "") | ascii_downcase | contains($filter))
+              )
             ))
             | .[0].address // empty
           ')
           test -n "$market_address" || {
-            echo "Unable to resolve Nosana market address for filter: ${{ env.NOSANA_MARKET_FILTER }}"
+            echo "Unable to resolve Nosana ${{ env.NOSANA_MARKET_TYPE }} market address for filter: ${{ env.NOSANA_MARKET_FILTER }}"
             echo "$response"
             exit 1
           }
