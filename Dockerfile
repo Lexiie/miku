@@ -17,7 +17,7 @@ ENV DO_NOT_TRACK=1
 WORKDIR /app
 
 # Install pnpm
-RUN npm install -g pnpm
+RUN npm install -g pnpm bun
 
 # Copy package manifest and install dependencies
 COPY package.json ./
