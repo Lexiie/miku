@@ -1,237 +1,43 @@
-# Miku 🤖📱
+# Miku
 
-**Your Personal AI Assistant for Android Automation**
+Miku is an Android automation assistant built with ElizaOS and a native Kotlin app. It turns plain-language requests into structured Android actions, then executes those actions on-device through real platform APIs.
 
-Miku transforms natural language into native Android actions. No more tapping through menus—just tell Miku what you want, and it happens instantly.
+The project is split into two parts:
+- a lightweight ElizaOS agent that exposes `/api/chat` and `/health`
+- an Android client that connects to that agent and runs the resulting actions locally
 
-Built on ElizaOS with decentralized inference, Miku bridges conversational AI with deep Android system integration, giving you voice-controlled automation that runs on your terms.
+## What Miku Does
 
----
+Miku is designed for commands such as:
+- "Set alarm for 7 AM tomorrow"
+- "Turn on WiFi"
+- "Send SMS to 081234567890 saying I'm on my way"
+- "Open Spotify"
+- "Remind me to stretch in 30 minutes"
 
-## 🎯 What Makes Miku Different
+Supported action families:
+- Time: alarms, timers, reminders, calendar events, agenda lookup
+- Communication: SMS, phone calls, notifications
+- Device controls: WiFi, Bluetooth, flashlight, brightness, volume, ringer mode
+- Apps and context: open app, uninstall app, location lookup
 
-**True Native Integration** — Unlike chatbots that just respond with text, Miku executes real Android API calls. Set alarms, toggle WiFi, send SMS, control brightness—all through natural language.
+## How It Works
 
-**Decentralized Intelligence** — Your agent runs on Nosana's distributed GPU network, not centralized cloud providers. You control the infrastructure, you own the data.
-
-**Zero Configuration** — No API keys, no complex setup. Just deploy the agent, install the app, connect, and start automating.
-
-**Hybrid Architecture** — ElizaOS handles the intelligence layer (intent parsing, parameter extraction), while native Android APIs handle execution. Best of both worlds.
-
----
-
-## ✨ Capabilities
-
-### ⏰ Time Management
-- **Set Alarm** — "Set alarm for 7 AM tomorrow"
-- **Set Timer** — "Timer for 10 minutes"
-- **Calendar Events** — "Add meeting with John at 2 PM"
-- **View Schedule** — "What's on my calendar today?"
-- **Reminders** — "Remind me to call mom in 30 minutes"
-
-### 📱 Communication
-- **Send SMS** — "Text 081234567890 saying I'm running late"
-- **Make Calls** — "Call 081234567890"
-- **Notifications** — "Notify me to take a break"
-
-### 🔧 System Control
-- **WiFi** — "Turn on WiFi" / "Disable WiFi"
-- **Bluetooth** — "Enable Bluetooth"
-- **Flashlight** — "Turn on flashlight"
-- **Brightness** — "Set brightness to 80%"
-- **Volume** — "Set volume to 50%"
-- **Ringer Mode** — "Set phone to silent" / "Vibrate mode"
-
-### 📍 Location & Apps
-- **Get Location** — "Where am I?"
-- **Open Apps** — "Open Spotify"
-- **Uninstall Apps** — "Uninstall Twitter"
-
----
-
-## 🏗️ Architecture
-
-Miku uses a **hybrid client-server architecture** where intelligence lives in the cloud and execution happens locally:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     ANDROID DEVICE                          │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  User Input (Text/Voice)                             │  │
-│  │  "Set alarm for 7 AM"                                │  │
-│  └───────────────────────────┬───────────────────────────┘  │
-│                              │ HTTP POST                     │
-│                              ▼                               │
-└──────────────────────────────┼──────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│              NOSANA DECENTRALIZED COMPUTE                   │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  ElizaOS Agent + Qwen3.5-27B                         │  │
-│  │  ┌─────────────────────────────────────────────────┐ │  │
-│  │  │ Intent Parser                                   │ │  │
-│  │  │ • Extract action type (SET_ALARM)              │ │  │
-│  │  │ • Extract parameters (hour: 7, minute: 0)      │ │  │
-│  │  │ • Generate structured JSON                     │ │  │
-│  │  └─────────────────────────────────────────────────┘ │  │
-│  └───────────────────────────┬───────────────────────────┘  │
-│                              │ JSON Response                 │
-│                              ▼                               │
-└──────────────────────────────┼──────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     ANDROID DEVICE                          │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  AutomationExecutor                                  │  │
-│  │  {                                                   │  │
-│  │    "type": "SET_ALARM",                             │  │
-│  │    "params": {"hour": 7, "minute": 0}               │  │
-│  │  }                                                   │  │
-│  └───────────────────────────┬───────────────────────────┘  │
-│                              │                               │
-│                              ▼                               │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  AlarmManager.setExactAlarm(...)                     │  │
-│  │  ✅ Native Android API Executed                      │  │
-│  └───────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
+```text
+User message in Android app
+        |
+        v
+POST /api/chat to ElizaOS agent
+        |
+        v
+Parser returns structured actions
+        |
+        v
+Android app executes each action locally
 ```
 
-**Why This Architecture?**
+Example response shape:
 
-- **Separation of Concerns** — AI inference happens on powerful GPUs, execution happens locally
-- **Privacy** — Sensitive actions (SMS, calls) never leave your device
-- **Scalability** — Agent can serve multiple devices simultaneously
-- **Flexibility** — Swap models, update logic, without touching the Android app
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- **Docker Hub account** (free)
-- **GitHub account** with Actions enabled
-- **Nosana API key** from [deploy.nosana.com](https://deploy.nosana.com/account/)
-- **Android device** (API 26+)
-
-### Step 1: Configure Deployment
-
-**1. Setup GitHub Secrets**
-
-Go to your repo → Settings → Secrets and variables → Actions, add:
-
-| Secret | Value | Where to Get |
-|--------|-------|--------------|
-| `DOCKER_USERNAME` | Your Docker Hub username | [hub.docker.com](https://hub.docker.com) |
-| `DOCKER_PASSWORD` | Docker Hub access token | [hub.docker.com/settings/security](https://hub.docker.com/settings/security) |
-| `NOSANA_API_KEY` | Nosana API key | [deploy.nosana.com/account](https://deploy.nosana.com/account/) |
-
-**2. Update Docker Image Name**
-
-Edit `.github/workflows/build-deploy.yml`:
-```yaml
-env:
-  DOCKER_IMAGE: YOUR_DOCKERHUB_USERNAME/miku
-```
-
-Edit `nos_job_def/nosana_eliza_job_definition.json`:
-```json
-{
-  "args": {
-    "image": "YOUR_DOCKERHUB_USERNAME/miku:latest",
-    ...
-  }
-}
-```
-
-### Step 2: Deploy
-
-```bash
-git add .
-git commit -m "Deploy Miku"
-git push origin main
-```
-
-GitHub Actions will automatically:
-1. ✅ Build Android APK
-2. ✅ Build Docker image
-3. ✅ Push to Docker Hub
-4. ✅ Deploy to Nosana
-5. ✅ Create GitHub Release with APK
-
-### Step 3: Install & Connect
-
-1. **Download APK** from [Releases page](../../releases/latest)
-2. **Install** on your Android device
-3. **Get agent URL** from Nosana dashboard (format: `https://xxx.node.k8s.prd.nos.ci`)
-4. **Open Miku app** → Enter URL → Tap "Connect"
-5. **Start automating!**
-
----
-
-## 🛠️ Technical Deep Dive
-
-### Intent Parsing Engine
-
-Miku uses a custom ElizaOS action handler that parses natural language into structured JSON:
-
-```typescript
-// Input: "Set alarm for 7 AM tomorrow"
-// Output:
-{
-  "text": "⏰ Alarm set for 7:00 AM",
-  "actions": [{
-    "type": "SET_ALARM",
-    "params": {
-      "hour": 7,
-      "minute": 0,
-      "label": "Alarm"
-    }
-  }]
-}
-```
-
-The parser handles:
-- **Time extraction** — Relative ("in 10 minutes") and absolute ("7 AM")
-- **Contact resolution** — Names to phone numbers
-- **Parameter inference** — Smart defaults when info is missing
-- **Multi-action commands** — "Turn on WiFi and set brightness to 50%"
-
-### Android Execution Layer
-
-`AutomationExecutor.kt` maps action types to native Android APIs:
-
-| Action Type | Android API | Permission Required |
-|-------------|-------------|---------------------|
-| `SET_ALARM` | `AlarmManager.setExactAlarm()` | `SCHEDULE_EXACT_ALARM` |
-| `SEND_SMS` | `SmsManager.sendTextMessage()` | `SEND_SMS` |
-| `TOGGLE_WIFI` | `WifiManager.setWifiEnabled()` | `CHANGE_WIFI_STATE` |
-| `SET_BRIGHTNESS` | `Settings.System.putInt()` | `WRITE_SETTINGS` |
-| `GET_LOCATION` | `FusedLocationProviderClient` | `ACCESS_FINE_LOCATION` |
-| `TOGGLE_FLASHLIGHT` | `CameraManager.setTorchMode()` | `CAMERA` |
-
-**Permission Handling** — Miku requests permissions just-in-time. When you first send SMS, it asks for SMS permission. When you first set brightness, it opens system settings.
-
-### Communication Protocol
-
-**Health Check:**
-```http
-GET /health
-```
-
-**Request:**
-```json
-POST /api/chat
-{
-  "text": "Set alarm for 7 AM and turn on WiFi",
-  "userId": "android_user"
-}
-```
-
-**Response:**
 ```json
 {
   "text": "Alarm ready for 07:00. WiFi will be turned on",
@@ -254,387 +60,216 @@ POST /api/chat
 }
 ```
 
-The Android app checks `/health` before connecting, executes each action sequentially, and displays follow-up status updates in the chat for async actions such as location lookup.
+This keeps inference and command parsing on the agent side, while privacy-sensitive execution stays on the phone.
 
-### State Management
+## Repository Layout
 
-Miku uses **Jetpack Compose + ViewModel** for reactive UI:
-
-- `ChatViewModel` — Manages messages, connection state, API calls
-- `AutomationExecutor` — Stateless executor for Android APIs
-- `ApiClient` — Retrofit HTTP client with URL normalization and health checks
-
-No local storage needed—all state is ephemeral. Privacy by design.
-
----
-
-## 📦 Project Structure
-
-```
+```text
 miku/
-├── src/                                    # ElizaOS Agent
-│   ├── parser.ts                          # Shared natural-language -> action parser
-│   ├── actions/
-│   │   └── androidAutomation.ts           # Eliza action wrapper for parser output
-│   ├── api.ts                             # Plugin routes (/api/chat, /health)
-│   └── index.ts                           # Plugin entry point
-│
-├── android/                                # Android App
-│   ├── app/
-│   │   ├── build.gradle.kts               # Build config
-│   │   └── src/main/
-│   │       ├── AndroidManifest.xml        # Permissions & config
-│   │       ├── java/com/miku/
-│   │       │   ├── MainActivity.kt        # Compose UI
-│   │       │   ├── ChatViewModel.kt       # State management
-│   │       │   ├── ApiClient.kt           # HTTP client
-│   │       │   ├── AutomationExecutor.kt  # Android API executor
-│   │       │   ├── ReminderReceiver.kt    # Reminder notifications
-│   │       │   └── Models.kt              # Data classes
-│   │       └── res/
-│   │           ├── values/strings.xml
-│   │           └── values/themes.xml
-│   ├── build.gradle.kts                   # Root build file
-│   ├── settings.gradle.kts                # Project settings
-│   └── gradlew                            # Gradle wrapper
-│
-├── characters/
-│   └── android.character.json             # Agent personality & examples
-│
-├── nos_job_def/
-│   └── nosana_eliza_job_definition.json   # Nosana deployment config
-│
-├── .github/workflows/
-│   └── build-deploy.yml                   # CI/CD pipeline
-│
-├── Dockerfile                             # Container config
-├── package.json                           # Node dependencies
-└── README.md                              # This file
+├── src/                       # ElizaOS agent routes and parser
+├── android/                   # Native Android app
+├── characters/                # Character configuration
+├── nos_job_def/               # Nosana job definition template
+├── .github/workflows/         # CI/CD workflow
+├── Dockerfile                 # Agent container image
+├── package.json               # Node/ElizaOS dependencies
+└── README.md
 ```
 
----
+Important paths:
+- `src/parser.ts`: natural-language to action parsing
+- `src/api.ts`: `/api/chat`, `/health`, `/api/health`
+- `android/app/src/main/java/com/miku/AutomationExecutor.kt`: Android action execution
+- `characters/android.character.json`: active character file
+- `.github/workflows/build-deploy.yml`: Android build plus Nosana deploy pipeline
 
-## 🔧 Development
+## CI/CD Flow
 
-### Local Agent Development
+On push to `main`, GitHub Actions currently:
+- builds the Android debug APK
+- uploads the APK as a workflow artifact
+- builds and pushes the agent Docker image
+- creates and starts a Nosana deployment through the Nosana HTTP API
+
+Required GitHub secrets:
+
+| Secret | Purpose |
+| --- | --- |
+| `DOCKER_USERNAME` | Docker Hub namespace for `DOCKER_IMAGE` |
+| `DOCKER_PASSWORD` | Docker Hub access token |
+| `NOSANA_API_KEY` | Nosana deployment API access |
+| `GEMINI_API_KEY` | Gemini key for the agent runtime |
+
+The workflow automatically tags the image as `${DOCKER_USERNAME}/miku` and injects Gemini settings into the deployment payload.
+
+## Quick Start
+
+### 1. Prepare secrets
+
+Add the required repository secrets in GitHub Actions:
+- `DOCKER_USERNAME`
+- `DOCKER_PASSWORD`
+- `NOSANA_API_KEY`
+- `GEMINI_API_KEY`
+
+### 2. Trigger the pipeline
 
 ```bash
-# Install dependencies
+git add .
+git commit -m "Update Miku"
+git push origin main
+```
+
+### 3. Get the outputs
+
+After the workflow finishes:
+- download the Android APK from the workflow artifacts
+- open the Nosana dashboard to inspect the deployment
+- copy the exposed deployment URL
+
+### 4. Connect from Android
+
+1. Install the APK on your device.
+2. Open the Miku app.
+3. Paste the deployed agent URL.
+4. Tap `Connect`.
+
+The app checks `/health` before using `/api/chat`.
+
+## Local Development
+
+### Agent
+
+Install dependencies:
+
+```bash
 pnpm install
+```
 
-# Run with Nosana endpoint (production)
-pnpm start
+Create a local env file:
 
-# Or run locally with Ollama (development)
-ollama pull qwen3.5:27b
-ollama serve
+```bash
+cp .env.example .env
+```
 
-# Update .env
-OPENAI_API_KEY=ollama
-OPENAI_API_URL=http://127.0.0.1:11434/v1
-MODEL_NAME=qwen3.5:27b
+Run the agent in development mode:
 
-# Start agent
+```bash
 pnpm dev
 ```
 
-Agent runs on `http://localhost:3000`
+Run the packaged agent:
 
-### Android App Development
+```bash
+pnpm start
+```
+
+Default local endpoint:
+
+```text
+http://localhost:3000
+```
+
+`.env.example` includes two common setups:
+- Gemini via the OpenAI-compatible endpoint
+- optional local Ollama development
+
+### Android app
 
 ```bash
 cd android
-
-# Debug build
+chmod +x gradlew
 ./gradlew assembleDebug
+```
 
-# Install to connected device
+Useful commands:
+
+```bash
 ./gradlew installDebug
-
-# Release build
 ./gradlew assembleRelease
 ```
 
-APK output: `android/app/build/outputs/apk/`
+APK outputs are written under:
 
-### Testing Locally
-
-1. Get your computer's local IP: `ifconfig` (Linux/Mac) or `ipconfig` (Windows)
-2. Run agent locally: `pnpm dev`
-3. In Miku app, enter: `http://YOUR_LOCAL_IP:3000`
-4. Ensure phone and computer are on same WiFi network
-
----
-
-## 🚢 Deployment
-
-### Automated Deployment (Recommended)
-
-GitHub Actions handles everything automatically:
-
-**On every push to `main`:**
-1. Builds Android APK
-2. Builds Docker image
-3. Pushes to Docker Hub
-4. Deploys to Nosana
-5. Creates GitHub Release with APK
-
-**Setup:**
-1. Configure GitHub Secrets (see Quick Start)
-2. Update Docker image names
-3. Push to `main`
-
-### Manual Deployment
-
-**Build Docker Image:**
-```bash
-docker build -t yourusername/miku:latest .
-docker push yourusername/miku:latest
+```text
+android/app/build/outputs/apk/
 ```
 
-**Deploy to Nosana:**
-```bash
-npm install -g @nosana/cli
+## API Surface
 
-nosana job post \
-  --file ./nos_job_def/nosana_eliza_job_definition.json \
-  --market nvidia-3090 \
-  --timeout 300 \
-  --api YOUR_NOSANA_API_KEY
+### Health
+
+```http
+GET /health
+GET /api/health
 ```
 
-**Monitor Deployment:**
-```bash
-# Check status
-nosana job status <job-id>
+### Chat
 
-# View logs
-nosana job logs <job-id>
+```http
+POST /api/chat
+Content-Type: application/json
 ```
 
----
-
-## 📱 Android App Features
-
-### Chat Interface
-- **Material Design 3** — Modern, clean UI with dynamic theming
-- **Real-time messaging** — Instant feedback on action execution
-- **Connection indicator** — Visual status (green = connected, red = disconnected)
-- **Auto-scroll** — Always shows latest messages
-
-### Dynamic Endpoint Configuration
-- **Manual URL input** — Connect to any ElizaOS agent
-- **Persistent connection** — Maintains session across app lifecycle
-- **Error handling** — Graceful fallback on network issues
-
-### Permission Management
-- **Just-in-time requests** — Only asks when needed
-- **Clear explanations** — Shows why each permission is required
-- **Graceful degradation** — Continues working even if some permissions denied
-
-### Execution Feedback
-Every action shows:
-- ✅ Success confirmation
-- ⚡ Action type executed
-- 📊 Result details (when applicable)
-
----
-
-## 🔐 Security & Privacy
-
-**Privacy-First Design:**
-- No data collection or analytics
-- No cloud storage of messages
-- All sensitive actions (SMS, calls) execute locally
-- Agent only receives command text, not contact lists or personal data
-
-**Permission Model:**
-- Runtime permissions requested on-demand
-- User has full control over what Miku can access
-- Permissions can be revoked anytime via Android settings
-
-**Network Security:**
-- HTTPS required for production deployments
-- Cleartext traffic only allowed for local development
-- No authentication tokens stored on device
-
----
-
-## 🧪 Testing
-
-### Test Commands
-
-Try these to verify all features work:
-
-```
-⏰ Time Management:
-- "Set alarm for 7 AM"
-- "Set timer 5 minutes"
-- "Add meeting tomorrow at 2 PM"
-
-🔧 System Control:
-- "Turn on WiFi"
-- "Set brightness to 70%"
-- "Turn on flashlight"
-- "Set phone to silent"
-
-📱 Communication:
-- "Send SMS to 081234567890 saying hello"
-- "Notify me to take a break"
-
-📍 Location:
-- "Where am I?"
-
-📱 Apps:
-- "Open Chrome"
-```
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| **Can't connect to agent** | Verify URL format: `https://xxx.node.k8s.prd.nos.ci` (include https://) |
-| **Permission denied** | Grant permission when prompted, or check Settings → Apps → Miku → Permissions |
-| **Action not executing** | Check Logcat for errors: `adb logcat \| grep Miku` |
-| **Agent not responding** | Check Nosana dashboard for job status and logs |
-| **Build fails** | Ensure JDK 17 installed: `java -version` |
-| **Gradle sync fails** | Delete `.gradle` folder and sync again |
-
----
-
-## 🎨 Customization
-
-### Modify Agent Behavior
-
-Edit `characters/android.character.json`:
+Request body:
 
 ```json
 {
-  "name": "Miku",
-  "system": "Your custom instructions here...",
-  "messageExamples": [
-    // Add more examples to improve parsing accuracy
-  ]
+  "text": "Set alarm for 7 AM and turn on WiFi",
+  "userId": "android_user"
 }
 ```
 
-### Add New Actions
+The response always contains:
+- `text`: user-facing summary
+- `actions`: structured action list for the Android executor
 
-**1. Add to shared parser** (`src/parser.ts`):
-```typescript
-if (lowerText.includes("screenshot")) {
-  pushAction(actions, {
-    type: "TAKE_SCREENSHOT",
-    params: {}
-  });
-}
-```
+## Android Execution Model
 
-**2. Add to Executor** (`android/.../AutomationExecutor.kt`):
-```kotlin
-"TAKE_SCREENSHOT" -> takeScreenshot(action.params)
-```
+The Android app uses Jetpack Compose and a simple MVVM structure:
+- `ChatViewModel` handles connection state, messages, and API calls
+- `ApiClient` normalizes URLs and checks health endpoints
+- `AutomationExecutor` maps action types to Android APIs
+- `ReminderReceiver` handles reminder notifications
 
-**3. Implement Android API**:
-```kotlin
-private fun takeScreenshot(params: Map<String, Any>): String {
-    // Your implementation
-    return "✅ Screenshot saved"
-}
-```
+Runtime permissions are requested only when the related action needs them.
 
-### Extend with ElizaOS Plugins
+## Customization
 
-Add more capabilities:
+### Tune parser behavior
 
-```bash
-pnpm add @elizaos/plugin-web-search
-```
+Update `src/parser.ts` when you want to add or refine supported commands.
 
-Update `characters/android.character.json`:
-```json
-{
-  "plugins": [
-    "@elizaos/plugin-bootstrap",
-    "@elizaos/plugin-openai",
-    "@elizaos/plugin-web-search"
-  ]
-}
-```
+### Tune character behavior
 
----
+Update `characters/android.character.json` when you want to adjust examples, system prompt, or model settings.
 
-## 🏗️ Tech Stack
+### Add a new Android action
 
-### Backend (ElizaOS Agent)
-- **Framework:** ElizaOS v2
-- **Runtime:** Node.js 23
-- **LLM:** Qwen3.5-27B (27B parameters, AWQ 4-bit quantization)
-- **Inference:** Nosana decentralized GPU network
-- **API:** ElizaOS plugin routes (`/api/chat`, `/health`)
-- **Container:** Docker
+1. Add the action type and parsing logic in `src/parser.ts`.
+2. Handle the new action in `AutomationExecutor.kt`.
+3. Update character examples if the new action needs stronger prompting.
 
-### Frontend (Android App)
-- **Language:** Kotlin
-- **UI Framework:** Jetpack Compose (Material Design 3)
-- **Architecture:** MVVM (ViewModel + State)
-- **HTTP Client:** Retrofit + OkHttp
-- **Async:** Kotlin Coroutines
-- **Location:** Google Play Services FusedLocationProvider
-- **Min SDK:** 26 (Android 8.0)
-- **Target SDK:** 35 (Android 15)
+## Troubleshooting
 
-### Infrastructure
-- **Compute:** Nosana decentralized network
-- **CI/CD:** GitHub Actions
-- **Container Registry:** Docker Hub
-- **Deployment:** Automated via GitHub workflow
+| Issue | What to check |
+| --- | --- |
+| App cannot connect | Confirm the URL is reachable and includes the correct protocol (`https://` for deployed endpoints). |
+| Health check fails | Verify the agent is serving `/health` or `/api/health`. |
+| Action does not execute | Check Android runtime permissions and inspect Logcat output. |
+| SMS or call actions fail | Confirm the device granted telephony permissions. |
+| Local Android build fails | Use JDK 17 and rebuild with `./gradlew --stacktrace assembleDebug`. |
+| Nosana deployment fails | Inspect the latest GitHub Actions run and the Nosana dashboard response. |
 
----
+## Tech Stack
 
-## 📊 Performance
+- ElizaOS for the agent runtime
+- TypeScript for parsing and API routes
+- Kotlin + Jetpack Compose for the Android client
+- Retrofit + OkHttp for Android networking
+- Nosana for deployment
+- Gemini models through the OpenAI-compatible Gemini endpoint
 
-**Agent Response Time:**
-- Intent parsing: ~500ms
-- Total round-trip: <2s (including network)
+## License
 
-**Android Execution:**
-- Action execution: <100ms (native APIs)
-- UI update: Instant (Compose reactivity)
-
-**Resource Usage:**
-- APK size: ~8MB
-- Memory footprint: ~50MB
-- Battery impact: Minimal (no background services)
-
----
-
-## 🤝 Contributing
-
-Contributions welcome! Areas for improvement:
-
-- [x] Voice input integration (SpeechRecognizer)
-- [x] Multi-step action sequences
-- [ ] Action history & undo
-- [ ] Widget support
-- [ ] Tasker integration
-- [ ] More Android APIs (camera, media, sensors)
-
----
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) file
-
----
-
-## 🙏 Acknowledgments
-
-Built with:
-- [ElizaOS](https://elizaos.com) - AI agent framework
-- [Nosana](https://nosana.com) - Decentralized compute
-- [Qwen](https://huggingface.co/Qwen) - Open-source LLM
-
----
-
-**Miku** — Your device, your assistant, your control. 🤖✨
+MIT. See `LICENSE`.
