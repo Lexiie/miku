@@ -1,25 +1,36 @@
-# Miku
+# Miku 🤖📱
 
-Miku is an Android automation assistant built with ElizaOS and a native Kotlin app. It turns plain-language requests into structured Android actions, then executes those actions on-device through real platform APIs.
+**Your Personal AI Assistant for Android Automation**
 
-The project is split into two parts:
-- a lightweight ElizaOS agent that exposes `/api/chat` and `/health`
-- an Android client that connects to that agent and runs the resulting actions locally
+Miku turns natural language into native Android actions. No menu-diving, no brittle macro flows, no fake assistant vibes. You say what you want, Miku translates it into structured actions, and your device executes them through real Android APIs.
 
-## What Miku Does
+Built on ElizaOS with a native Kotlin client, Miku combines conversational UX with local device control. The agent handles intent parsing and response generation, while the Android app performs the sensitive work on-device where it belongs.
 
-Miku is designed for commands such as:
+## Why Miku Feels Different
+
+**Native, not simulated**
+Miku does not stop at chat responses. It is designed to drive real Android capabilities such as alarms, WiFi, SMS, reminders, brightness, and app launching.
+
+**Cloud intelligence, local execution**
+The agent can run remotely on Nosana, but execution still happens on the phone. That keeps the architecture flexible without turning private device actions into server-side behavior.
+
+**Fast to try, clear to extend**
+The repo is intentionally split into a small ElizaOS agent and a native Android app, so it is easy to understand, customize, and ship.
+
+## What You Can Ask It To Do
+
+Miku is built for commands such as:
 - "Set alarm for 7 AM tomorrow"
 - "Turn on WiFi"
 - "Send SMS to 081234567890 saying I'm on my way"
 - "Open Spotify"
 - "Remind me to stretch in 30 minutes"
 
-Supported action families:
-- Time: alarms, timers, reminders, calendar events, agenda lookup
+Core capability groups:
+- Time management: alarms, timers, reminders, calendar events, agenda lookup
 - Communication: SMS, phone calls, notifications
 - Device controls: WiFi, Bluetooth, flashlight, brightness, volume, ringer mode
-- Apps and context: open app, uninstall app, location lookup
+- Context and apps: open app, uninstall app, location lookup
 
 ## How It Works
 
@@ -35,6 +46,10 @@ Parser returns structured actions
         v
 Android app executes each action locally
 ```
+
+The project has two moving parts:
+- a lightweight ElizaOS agent that exposes `/api/chat` and health endpoints
+- an Android client that connects to the agent and executes the returned actions locally
 
 Example response shape:
 
