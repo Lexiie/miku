@@ -189,7 +189,7 @@ The parser handles:
 
 | Action Type | Android API | Permission Required |
 |-------------|-------------|---------------------|
-| `SET_ALARM` | `AlarmManager.setExactAlarm()` | `SCHEDULE_EXACT_ALARM` |
+| `SET_ALARM` | `Intent(AlarmClock.ACTION_SET_ALARM)` | None |
 | `SEND_SMS` | `SmsManager.sendTextMessage()` | `SEND_SMS` |
 | `TOGGLE_WIFI` | `WifiManager.setWifiEnabled()` | `CHANGE_WIFI_STATE` |
 | `SET_BRIGHTNESS` | `Settings.System.putInt()` | `WRITE_SETTINGS` |
@@ -197,6 +197,8 @@ The parser handles:
 | `TOGGLE_FLASHLIGHT` | `CameraManager.setTorchMode()` | `CAMERA` |
 
 **Permission Handling** — Miku requests permissions just-in-time. When you first send SMS, it asks for SMS permission. When you first set brightness, it opens system settings.
+
+For exact scheduled reminders, Miku separately requests Android's exact alarm capability when needed.
 
 ### Communication Protocol
 
@@ -404,8 +406,8 @@ Every action shows:
 - Permissions can be revoked anytime via Android settings
 
 **Network Security:**
-- HTTPS required for production deployments
-- Cleartext traffic allowed only for local development
+- Deployed endpoints should use HTTPS whenever available
+- The Android app currently allows cleartext traffic, which is useful for local development and LAN testing
 - No authentication tokens stored on device
 
 ---
