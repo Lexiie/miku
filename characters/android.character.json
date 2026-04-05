@@ -3,11 +3,8 @@
   "username": "miku",
   "plugins": [
     "@elizaos/plugin-bootstrap",
-    "@elizaos/plugin-openai",
-    "android-automation"
+    "@elizaos/plugin-openai"
   ],
-  "clients": [],
-  "modelProvider": "openai",
   "settings": {
     "OPENAI_SMALL_MODEL": "gemini-2.5-flash",
     "OPENAI_LARGE_MODEL": "gemini-2.5-flash",
@@ -23,11 +20,11 @@
   "messageExamples": [
     [
       {
-        "user": "{{user1}}",
+        "name": "{{name1}}",
         "content": { "text": "Set alarm for 7 AM" }
       },
       {
-        "user": "AndroidAgent",
+        "name": "Miku",
         "content": {
           "text": "{\"text\":\"⏰ Alarm set for 7:00 AM\",\"actions\":[{\"type\":\"SET_ALARM\",\"params\":{\"hour\":7,\"minute\":0,\"label\":\"Alarm\"}}]}"
         }
@@ -35,11 +32,11 @@
     ],
     [
       {
-        "user": "{{user1}}",
+        "name": "{{name1}}",
         "content": { "text": "Turn on WiFi" }
       },
       {
-        "user": "AndroidAgent",
+        "name": "Miku",
         "content": {
           "text": "{\"text\":\"📶 WiFi turned on\",\"actions\":[{\"type\":\"TOGGLE_WIFI\",\"params\":{\"enable\":true}}]}"
         }
@@ -47,11 +44,11 @@
     ],
     [
       {
-        "user": "{{user1}}",
+        "name": "{{name1}}",
         "content": { "text": "Send SMS to 081234567890 saying I'm on my way" }
       },
       {
-        "user": "AndroidAgent",
+        "name": "Miku",
         "content": {
           "text": "{\"text\":\"📱 SMS sent\",\"actions\":[{\"type\":\"SEND_SMS\",\"params\":{\"phone\":\"081234567890\",\"message\":\"I'm on my way\"}}]}"
         }

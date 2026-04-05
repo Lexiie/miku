@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "elizaos start --character ./characters/android.character.json",
-    "dev": "elizaos dev --character ./characters/android.character.json"
+    "start": "elizaos start",
+    "dev": "elizaos dev"
   },
   "dependencies": {
     "@elizaos/core": "^1.0.0",
