@@ -1,5 +1,12 @@
 # Miku 🤖📱
 
+[![Build and Deploy](https://github.com/Lexiie/miku/actions/workflows/build-deploy.yml/badge.svg?branch=main)](https://github.com/Lexiie/miku/actions/workflows/build-deploy.yml)
+![Android](https://img.shields.io/badge/Android-API%2026%2B-3DDC84?logo=android&logoColor=white)
+![ElizaOS](https://img.shields.io/badge/ElizaOS-Agent-111827)
+![Kotlin](https://img.shields.io/badge/Kotlin-Android-7F52FF?logo=kotlin&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-Agent-3178C6?logo=typescript&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
+
 **Your Personal AI Assistant for Android Automation**
 
 Miku transforms natural language into native Android actions. No more tapping through menus, just tell Miku what you want, and it happens instantly.
@@ -68,7 +75,7 @@ Miku uses a **hybrid client-server architecture** where intelligence lives remot
 ┌─────────────────────────────────────────────────────────────┐
 │              NOSANA DECENTRALIZED COMPUTE                   │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │  ElizaOS Agent                                       │  │
+│  │  ElizaOS Agent + Qwen3.5-27B                         │  │
 │  │  ┌─────────────────────────────────────────────────┐ │  │
 │  │  │ Intent Parser                                   │ │  │
 │  │  │ • Extract action type                           │ │  │
@@ -93,7 +100,7 @@ Miku uses a **hybrid client-server architecture** where intelligence lives remot
 │                              │                               │
 │                              ▼                               │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │  AlarmManager.setExactAlarm(...)                     │  │
+│  │  Intent(AlarmClock.ACTION_SET_ALARM)                 │  │
 │  │  ✅ Native Android API Executed                      │  │
 │  └───────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
@@ -115,7 +122,7 @@ Miku uses a **hybrid client-server architecture** where intelligence lives remot
 - **Docker Hub account**
 - **GitHub account** with Actions enabled
 - **Nosana API key** from [deploy.nosana.com](https://deploy.nosana.com/account/)
-- **Gemini API key** for the deployed agent
+- **An LLM provider or endpoint compatible with ElizaOS**
 - **Android device** (API 26+)
 
 ### Step 1: Configure GitHub Secrets
@@ -127,9 +134,13 @@ Go to your repo → Settings → Secrets and variables → Actions, then add:
 | `DOCKER_USERNAME` | Your Docker Hub username | [hub.docker.com](https://hub.docker.com) |
 | `DOCKER_PASSWORD` | Docker Hub access token | [hub.docker.com/settings/security](https://hub.docker.com/settings/security) |
 | `NOSANA_API_KEY` | Nosana API key | [deploy.nosana.com/account](https://deploy.nosana.com/account/) |
-| `GEMINI_API_KEY` | Gemini API key | Google AI Studio or Google Cloud |
+| Provider-specific LLM secret(s) | Credentials for the model/provider you choose | Depends on your ElizaOS model setup |
 
 The workflow uses `DOCKER_USERNAME` to tag the image automatically, so you do not need to hardcode the image name in the repository first.
+
+Miku started with **Qwen 3.5 27B** as the reference model, but the agent layer can be adapted to other LLMs you wire into ElizaOS, for example OpenAI-compatible endpoints, Claude, GLM, and similar provider integrations.
+
+If you switch providers or models, update the workflow and runtime environment to match the LLM configuration you actually deploy.
 
 ### Step 2: Deploy
 
@@ -521,8 +532,9 @@ Update `characters/android.character.json`:
 ### Backend (ElizaOS Agent)
 - **Framework:** ElizaOS v2
 - **Runtime:** Node.js
-- **Default deployed model path:** Gemini via OpenAI-compatible endpoint
-- **Optional local dev model path:** Ollama-compatible OpenAI endpoint
+- **Reference model:** Qwen3.5-27B
+- **Model layer:** OpenAI-compatible endpoints plus other ElizaOS integration paths such as Claude, GLM, and similar providers
+- **Local dev option:** Ollama-compatible OpenAI endpoint
 - **Inference host:** Nosana decentralized GPU network
 - **API:** ElizaOS plugin routes (`/api/chat`, `/health`)
 - **Container:** Docker
@@ -586,7 +598,7 @@ MIT License - see [LICENSE](LICENSE) file.
 Built with:
 - [ElizaOS](https://elizaos.com) - AI agent framework
 - [Nosana](https://nosana.com) - Decentralized compute
-- [Gemini](https://ai.google.dev/) - Model endpoint used by the default deploy flow
+- [Qwen](https://huggingface.co/Qwen) - Open-source model family used as the original reference point
 
 ---
 
