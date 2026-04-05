@@ -1,5 +1,9 @@
 name: Build and Deploy
 
+concurrency:
+  group: build-and-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ main, elizaos-challenge ]
@@ -19,7 +23,7 @@ env:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -36,7 +40,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew --no-daemon --console=plain --stacktrace :app:assembleRelease
 
       - name: Normalize APK artifact
         run: |
