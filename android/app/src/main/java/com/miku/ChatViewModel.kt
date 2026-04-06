@@ -91,10 +91,13 @@ class ChatViewModel : ViewModel() {
 
         var lastHttpCode: Int? = null
         var lastError: Throwable? = null
+        var sawHttpResponse = false
 
         for (endpoint in endpoints) {
             try {
                 val response = endpoint()
+                sawHttpResponse = true
+                lastError = null
                 response.useBody {
                     if (response.isSuccessful) {
                         return null
@@ -106,8 +109,12 @@ class ChatViewModel : ViewModel() {
             }
         }
 
+        if (sawHttpResponse) {
+            return lastHttpCode ?: 0
+        }
+
         lastError?.let { throw it }
-        return lastHttpCode ?: 0
+        return 0
     }
 
     private inline fun <T> Response<ResponseBody>.useBody(block: () -> T): T {
