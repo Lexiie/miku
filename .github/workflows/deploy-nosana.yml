@@ -54,6 +54,9 @@ jobs:
       - name: Resolve market address
         id: resolve-market
         run: |
+          normalized_market_filter=$(printf '%s' "${{ env.NOSANA_MARKET_FILTER }}" | tr '[:upper:]' '[:lower:]')
+          normalized_market_type=$(printf '%s' "${{ env.NOSANA_MARKET_TYPE }}" | tr '[:upper:]' '[:lower:]')
+
           response_file=$(mktemp)
           status_code=$(curl -sS -o "$response_file" -w '%{http_code}' \
             -H "Authorization: Bearer ${{ env.NOSANA_API_KEY }}" \
@@ -66,9 +69,9 @@ jobs:
               exit 1
               ;;
           esac
-          market_address=$(jq -r --arg filter "${{ env.NOSANA_MARKET_FILTER }}" --arg marketType "${{ env.NOSANA_MARKET_TYPE }}" '
+          market_address=$(jq -r --arg filter "$normalized_market_filter" --arg marketType "$normalized_market_type" '
             map(select(
-              (.type == $marketType)
+              ((.type // "") | ascii_downcase) == $marketType
               and
               (
                 ((.name // "") | ascii_downcase | contains($filter))
