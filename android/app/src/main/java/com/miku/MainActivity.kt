@@ -64,11 +64,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -139,8 +141,10 @@ class MainActivity : ComponentActivity() {
 fun ChatScreen(executor: AutomationExecutor) {
     val viewModel: ChatViewModel = viewModel()
     val context = LocalContext.current
+    val density = LocalDensity.current
     var inputText by rememberSaveable { mutableStateOf("") }
     var endpointUrl by rememberSaveable { mutableStateOf(viewModel.agentUrl) }
+    var composerHeightPx by rememberSaveable { mutableStateOf(0) }
     val listState = rememberLazyListState()
 
     val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -181,6 +185,8 @@ fun ChatScreen(executor: AutomationExecutor) {
             endpointUrl = viewModel.agentUrl
         }
     }
+
+    val composerBottomInset = with(density) { composerHeightPx.toDp() }
 
     Box(
         modifier = Modifier
@@ -242,7 +248,7 @@ fun ChatScreen(executor: AutomationExecutor) {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(horizontal = 16.dp)
-                        .padding(bottom = 132.dp),
+                        .padding(bottom = composerBottomInset),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     item { Spacer(Modifier.height(12.dp)) }
@@ -265,7 +271,9 @@ fun ChatScreen(executor: AutomationExecutor) {
                     },
                     enabled = viewModel.isConnected && !viewModel.isConnecting,
                     isConnecting = viewModel.isConnecting,
-                    modifier = Modifier.align(Alignment.BottomCenter),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .onSizeChanged { composerHeightPx = it.height },
                 )
             }
         }
