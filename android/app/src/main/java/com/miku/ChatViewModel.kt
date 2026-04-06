@@ -29,13 +29,14 @@ class ChatViewModel : ViewModel() {
             try {
                 val api = ApiClient.getApi() ?: error("Agent client unavailable")
                 val health = api.health()
+                val fallbackHealth = if (health.isSuccessful) health else api.apiHealth()
 
-                if (health.status == "ok") {
+                if (fallbackHealth.isSuccessful) {
                     isConnected = true
                     addMessage("✅ Connected to agent", false)
                 } else {
                     isConnected = false
-                    addMessage("❌ Agent health check failed", false)
+                    addMessage("❌ Agent health check failed (${fallbackHealth.code()})", false)
                 }
             } catch (e: Exception) {
                 isConnected = false

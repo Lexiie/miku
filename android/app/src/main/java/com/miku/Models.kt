@@ -10,10 +10,6 @@ data class AgentResponse(
     val actions: List<AndroidAction> = emptyList()
 )
 
-data class HealthResponse(
-    val status: String
-)
-
 data class AndroidAction(
     val type: String,
     val params: Map<String, Any> = emptyMap()
