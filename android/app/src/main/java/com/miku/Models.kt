@@ -11,8 +11,7 @@ data class AgentResponse(
 )
 
 data class HealthResponse(
-    val status: String,
-    val timestamp: Long
+    val status: String
 )
 
 data class AndroidAction(
