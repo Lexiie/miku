@@ -6,6 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import okhttp3.ResponseBody
+import retrofit2.Response
 
 class ChatViewModel : ViewModel() {
     var messages by mutableStateOf(listOf<Message>())
@@ -28,15 +30,14 @@ class ChatViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val api = ApiClient.getApi() ?: error("Agent client unavailable")
-                val health = api.health()
-                val fallbackHealth = if (health.isSuccessful) health else api.apiHealth()
+                val healthStatus = checkHealth(api)
 
-                if (fallbackHealth.isSuccessful) {
+                if (healthStatus == null) {
                     isConnected = true
                     addMessage("✅ Connected to agent", false)
                 } else {
                     isConnected = false
-                    addMessage("❌ Agent health check failed (${fallbackHealth.code()})", false)
+                    addMessage("❌ Agent health check failed ($healthStatus)", false)
                 }
             } catch (e: Exception) {
                 isConnected = false
@@ -80,5 +81,41 @@ class ChatViewModel : ViewModel() {
     
     private fun addMessage(text: String, isUser: Boolean) {
         messages = messages + Message(text, isUser)
+    }
+
+    private suspend fun checkHealth(api: AgentApi): Int? {
+        val endpoints: List<suspend () -> Response<ResponseBody>> = listOf(
+            { api.health() },
+            { api.apiHealth() },
+        )
+
+        var lastHttpCode: Int? = null
+        var lastError: Throwable? = null
+
+        for (endpoint in endpoints) {
+            try {
+                val response = endpoint()
+                response.useBody {
+                    if (response.isSuccessful) {
+                        return null
+                    }
+                    lastHttpCode = response.code()
+                }
+            } catch (error: Exception) {
+                lastError = error
+            }
+        }
+
+        lastError?.let { throw it }
+        return lastHttpCode ?: 0
+    }
+
+    private inline fun <T> Response<ResponseBody>.useBody(block: () -> T): T {
+        return try {
+            block()
+        } finally {
+            errorBody()?.close()
+            body()?.close()
+        }
     }
 }
