@@ -1,4 +1,4 @@
-name: Android Release APK
+name: Build Release APK
 
 concurrency:
   group: android-release-${{ github.ref }}

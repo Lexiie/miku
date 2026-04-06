@@ -1,101 +1,72 @@
-name: Build and Deploy
-
-concurrency:
-  group: build-and-deploy-${{ github.ref }}
-  cancel-in-progress: true
+name: Deploy Nosana
 
 on:
-  push:
-    branches: [ main, elizaos-challenge ]
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Docker image tag to deploy
+        required: true
+        default: latest
+      deployment_name:
+        description: Prefix for the Nosana deployment name
+        required: true
+        default: miku
+      market_filter:
+        description: GPU/market filter
+        required: true
+        default: '3090'
+      market_type:
+        description: Nosana market type
+        required: true
+        default: PREMIUM
 
 permissions:
-  contents: write
+  contents: read
 
-env:
-  DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/miku
-  NOSANA_API_KEY: ${{ secrets.NOSANA_API_KEY }}
-  LLM_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-  NOSANA_API_BASE: https://dashboard.k8s.prd.nos.ci/api
-  NOSANA_MARKET_FILTER: 3090
-  NOSANA_MARKET_TYPE: PREMIUM
+concurrency:
+  group: deploy-nosana-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-debug-apk:
+  deploy-nosana:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    env:
+      DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/miku
+      NOSANA_API_KEY: ${{ secrets.NOSANA_API_KEY }}
+      LLM_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      NOSANA_API_BASE: https://dashboard.k8s.prd.nos.ci/api
+      NOSANA_MARKET_FILTER: ${{ inputs.market_filter }}
+      NOSANA_MARKET_TYPE: ${{ inputs.market_type }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-
-      - name: Build debug APK
-        working-directory: android
+      - name: Validate deployment secrets
         run: |
-          chmod +x gradlew
-          ./gradlew --no-daemon --console=plain --stacktrace :app:assembleDebug
-
-      - name: Normalize APK artifact
-        run: |
-          apk_path=$(find android/app/build/outputs/apk/debug -name '*.apk' | head -n 1)
-          test -n "$apk_path" || {
-            echo "Debug APK not found";
+          test -n "${{ env.NOSANA_API_KEY }}" || {
+            echo "NOSANA_API_KEY secret is required";
             exit 1;
           }
-          cp "$apk_path" app-debug.apk
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-debug-apk
-          path: app-debug.apk
-
-  build-and-deploy-agent:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.DOCKER_IMAGE }}:latest
-            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      
-      - name: Validate Gemini API key
-        run: |
           test -n "${{ env.LLM_API_KEY }}" || {
-            echo "GEMINI_API_KEY secret is required for deployment";
+            echo "GEMINI_API_KEY secret is required for the current deploy workflow";
             exit 1;
           }
 
       - name: Resolve market address
         id: resolve-market
         run: |
-          response=$(curl -sS \
+          response_file=$(mktemp)
+          status_code=$(curl -sS -o "$response_file" -w '%{http_code}' \
             -H "Authorization: Bearer ${{ env.NOSANA_API_KEY }}" \
             "${{ env.NOSANA_API_BASE }}/markets/")
-          market_address=$(printf '%s' "$response" | jq -r --arg filter "${{ env.NOSANA_MARKET_FILTER }}" --arg marketType "${{ env.NOSANA_MARKET_TYPE }}" '
+          case "$status_code" in
+            2*) ;;
+            *)
+              echo "Failed to fetch Nosana markets (HTTP $status_code)"
+              cat "$response_file"
+              exit 1
+              ;;
+          esac
+          market_address=$(jq -r --arg filter "${{ env.NOSANA_MARKET_FILTER }}" --arg marketType "${{ env.NOSANA_MARKET_TYPE }}" '
             map(select(
               (.type == $marketType)
               and
@@ -106,10 +77,10 @@ jobs:
               )
             ))
             | .[0].address // empty
-          ')
+          ' "$response_file")
           test -n "$market_address" || {
             echo "Unable to resolve Nosana ${{ env.NOSANA_MARKET_TYPE }} market address for filter: ${{ env.NOSANA_MARKET_FILTER }}"
-            echo "$response"
+            cat "$response_file"
             exit 1
           }
           echo "market_address=$market_address" >> "$GITHUB_OUTPUT"
@@ -119,7 +90,7 @@ jobs:
         run: |
           tmp_job_definition=$(mktemp)
           jq \
-            --arg image "${{ env.DOCKER_IMAGE }}:latest" \
+            --arg image "${{ env.DOCKER_IMAGE }}:${{ inputs.image_tag }}" \
             --arg apiKey "${{ env.LLM_API_KEY }}" \
             --arg baseUrl "https://generativelanguage.googleapis.com/v1beta/openai" \
             --arg smallModel "gemini-2.5-flash" \
@@ -137,8 +108,9 @@ jobs:
             ' ./nos_job_def/nosana_eliza_job_definition.json > "$tmp_job_definition"
 
           payload_file=$(mktemp)
+          deployment_name="${{ inputs.deployment_name }}-${GITHUB_RUN_NUMBER}"
           jq -n \
-            --arg name "miku-${GITHUB_SHA::7}" \
+            --arg name "$deployment_name" \
             --arg market "${{ steps.resolve-market.outputs.market_address }}" \
             --argjson timeout 300 \
             --argjson replicas 1 \
@@ -154,28 +126,56 @@ jobs:
             }' > "$payload_file"
 
           echo "payload_file=$payload_file" >> "$GITHUB_OUTPUT"
-      
+
       - name: Create deployment
         id: create-deployment
         run: |
-          response=$(curl -sS \
+          response_file=$(mktemp)
+          status_code=$(curl -sS -o "$response_file" -w '%{http_code}' \
             -X POST \
             -H "Authorization: Bearer ${{ env.NOSANA_API_KEY }}" \
             -H "Content-Type: application/json" \
             --data @"${{ steps.payload.outputs.payload_file }}" \
             "${{ env.NOSANA_API_BASE }}/deployments/create")
-          deployment_id=$(printf '%s' "$response" | jq -r '.id // .deployment.id // empty')
+          case "$status_code" in
+            2*) ;;
+            *)
+              echo "Failed to create deployment (HTTP $status_code)"
+              cat "$response_file"
+              exit 1
+              ;;
+          esac
+          deployment_id=$(jq -r '.id // .deployment.id // empty' "$response_file")
           test -n "$deployment_id" || {
-            echo "Failed to create deployment"
-            echo "$response"
+            echo "Deployment id missing from response"
+            cat "$response_file"
             exit 1
           }
           echo "deployment_id=$deployment_id" >> "$GITHUB_OUTPUT"
 
       - name: Start deployment
         run: |
-          curl -sS \
+          response_file=$(mktemp)
+          status_code=$(curl -sS -o "$response_file" -w '%{http_code}' \
             -X POST \
             -H "Authorization: Bearer ${{ env.NOSANA_API_KEY }}" \
-            "${{ env.NOSANA_API_BASE }}/deployments/${{ steps.create-deployment.outputs.deployment_id }}/start" \
-            | jq .
+            "${{ env.NOSANA_API_BASE }}/deployments/${{ steps.create-deployment.outputs.deployment_id }}/start")
+          case "$status_code" in
+            2*) ;;
+            *)
+              echo "Failed to start deployment (HTTP $status_code)"
+              cat "$response_file"
+              exit 1
+              ;;
+          esac
+          deployment_status=$(jq -r '.status // .deployment.status // empty' "$response_file")
+          case "$deployment_status" in
+            STARTING|RUNNING)
+              cat "$response_file"
+              ;;
+            *)
+              echo "Unexpected deployment status: ${deployment_status:-<empty>}"
+              cat "$response_file"
+              exit 1
+              ;;
+          esac

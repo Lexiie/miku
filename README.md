@@ -1,6 +1,9 @@
 # Miku 🤖📱
 
-[![Build and Deploy](https://github.com/Lexiie/miku/actions/workflows/build-deploy.yml/badge.svg?branch=main)](https://github.com/Lexiie/miku/actions/workflows/build-deploy.yml)
+[![Build Release APK](https://github.com/Lexiie/miku/actions/workflows/android-release.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/android-release.yml)
+[![Build Debug APK](https://github.com/Lexiie/miku/actions/workflows/build-debug-apk.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/build-debug-apk.yml)
+[![Deploy Docker ElizaOS](https://github.com/Lexiie/miku/actions/workflows/deploy-docker-elizaos.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/deploy-docker-elizaos.yml)
+[![Deploy Nosana](https://github.com/Lexiie/miku/actions/workflows/deploy-nosana.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/deploy-nosana.yml)
 ![Android](https://img.shields.io/badge/Android-API%2026%2B-3DDC84?logo=android&logoColor=white)
 ![ElizaOS](https://img.shields.io/badge/ElizaOS-Agent-111827)
 ![Kotlin](https://img.shields.io/badge/Kotlin-Android-7F52FF?logo=kotlin&logoColor=white)
@@ -136,29 +139,26 @@ Go to your repo → Settings → Secrets and variables → Actions, then add:
 | `NOSANA_API_KEY` | Nosana API key | [deploy.nosana.com/account](https://deploy.nosana.com/account/) |
 | `GEMINI_API_KEY` | Gemini API key required by the current workflow | Google AI Studio or Google Cloud |
 
-The workflow uses `DOCKER_USERNAME` to tag the image automatically, so you do not need to hardcode the image name in the repository first.
+The Docker workflow uses `DOCKER_USERNAME` to tag the image automatically, so you do not need to hardcode the image name in the repository first.
 
 Miku started with **Qwen 3.5 27B** as the reference model, but the agent layer can be adapted to other LLMs you wire into ElizaOS, for example OpenAI-compatible endpoints, Claude, GLM, and similar provider integrations.
 
-The checked-in GitHub Actions workflow in this repo currently deploys with `GEMINI_API_KEY`, so if you switch providers or models, update the workflow and runtime environment together.
+The checked-in Nosana deploy workflow in this repo currently deploys with `GEMINI_API_KEY`, so if you switch providers or models, update that workflow and the runtime environment together.
 
-### Step 2: Deploy
+### Step 2: Run the Manual Workflows
 
-```bash
-git add .
-git commit -m "Deploy Miku"
-git push origin main
-```
+Run these workflows manually from the **Actions** tab:
 
-GitHub Actions will automatically:
-1. Build the Android APK
-2. Upload the APK as a workflow artifact
-3. Build and push the Docker image
-4. Create and start the Nosana deployment
+1. **Deploy Docker ElizaOS**
+   Builds and pushes the agent image to Docker Hub.
+2. **Build Debug APK** or **Build Release APK**
+   Produces the Android artifact you want to install.
+3. **Deploy Nosana**
+   Starts the Nosana deployment using the Docker image tag you choose, usually `latest` or a specific commit SHA.
 
 ### Step 3: Install & Connect
 
-1. Download the APK from the latest workflow artifact.
+1. Download the APK from the workflow artifact of **Build Debug APK** or **Build Release APK**.
 2. Install it on your Android device.
 3. Get the agent URL from the Nosana dashboard.
 4. Open the Miku app, enter the URL, and tap `Connect`.
@@ -301,7 +301,10 @@ miku/
 │   └── nosana_eliza_job_definition.json    # Nosana deployment config template
 │
 ├── .github/workflows/
-│   └── build-deploy.yml                    # CI/CD pipeline
+│   ├── android-release.yml                 # Manual release APK build
+│   ├── build-debug-apk.yml                 # Manual debug APK build
+│   ├── deploy-docker-elizaos.yml           # Manual Docker build/push
+│   └── deploy-nosana.yml                   # Manual Nosana deployment
 │
 ├── Dockerfile                              # Container config
 ├── package.json                            # Node dependencies
@@ -357,19 +360,22 @@ APK output: `android/app/build/outputs/apk/`
 
 ## 🚢 Deployment
 
-### Automated Deployment (Recommended)
+### Manual GitHub Actions Deployment (Recommended)
 
-GitHub Actions handles the maintained deployment path for this repo.
+GitHub Actions handles the maintained deployment path for this repo, but each workflow is triggered manually.
 
-If you already followed **Quick Start**, there is no extra setup here. On every push to `main`, the workflow:
-1. Builds the Android APK
-2. Uploads the APK artifact
-3. Builds and pushes the Docker image
-4. Creates and starts the Nosana deployment
+If you already followed **Quick Start**, there is no extra setup here. Run the workflows in the order you need:
+1. `deploy-docker-elizaos.yml`
+2. `build-debug-apk.yml` or `android-release.yml`
+3. `deploy-nosana.yml`
 
 ### Manual Deployment
 
-The automated workflow is the primary path. If you need a manual flow, mirror the payload generation and HTTP API calls defined in `.github/workflows/build-deploy.yml`.
+The maintained manual flow lives in these workflow files:
+- `.github/workflows/android-release.yml`
+- `.github/workflows/build-debug-apk.yml`
+- `.github/workflows/deploy-docker-elizaos.yml`
+- `.github/workflows/deploy-nosana.yml`
 
 The Nosana deployment flow uses:
 - market discovery via `/api/markets/`
