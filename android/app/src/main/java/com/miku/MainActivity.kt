@@ -306,26 +306,12 @@ private fun HeaderPanel(
                             modifier = Modifier.size(18.dp),
                         )
                         Text(
-                            text = "MIKU CONSOLE",
+                            text = "MIKU",
                             color = MutedMist,
                             style = MaterialTheme.typography.labelLarge,
                             letterSpacing = 1.6.sp,
                         )
                     }
-                    Text(
-                        text = "Elegant Android control,\ndelivered in real time",
-                        color = Mist,
-                        style = MaterialTheme.typography.headlineMedium,
-                    )
-                    Text(
-                        text = if (isConnected) {
-                            "Connected and ready to execute native device actions."
-                        } else {
-                            "Connect your agent endpoint from the header, then start issuing commands."
-                        },
-                        color = MutedMist,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
                 }
 
                 StatusPill(
