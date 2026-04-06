@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "./src/index.ts",
   "scripts": {
     "start": "elizaos start",
     "dev": "elizaos dev"

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -204,6 +205,7 @@ fun ChatScreen(executor: AutomationExecutor) {
 
         Scaffold(
             containerColor = Color.Transparent,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 HeaderPanel(
                     endpointUrl = endpointUrl,
@@ -218,22 +220,6 @@ fun ChatScreen(executor: AutomationExecutor) {
                             viewModel.connect(endpointUrl)
                         }
                     },
-                )
-            },
-            bottomBar = {
-                ComposerBar(
-                    inputText = inputText,
-                    onInputChange = { inputText = it },
-                    onMicClick = { audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
-                    onSendClick = {
-                        val trimmed = inputText.trim()
-                        if (trimmed.isNotEmpty()) {
-                            viewModel.sendMessage(trimmed, executor)
-                            inputText = ""
-                        }
-                    },
-                    enabled = viewModel.isConnected && !viewModel.isConnecting,
-                    isConnecting = viewModel.isConnecting,
                 )
             },
         ) { paddingValues ->
@@ -255,7 +241,8 @@ fun ChatScreen(executor: AutomationExecutor) {
                     state = listState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(horizontal = 16.dp),
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 132.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     item { Spacer(Modifier.height(12.dp)) }
@@ -264,6 +251,22 @@ fun ChatScreen(executor: AutomationExecutor) {
                     }
                     item { Spacer(Modifier.height(18.dp)) }
                 }
+
+                ComposerBar(
+                    inputText = inputText,
+                    onInputChange = { inputText = it },
+                    onMicClick = { audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO) },
+                    onSendClick = {
+                        val trimmed = inputText.trim()
+                        if (trimmed.isNotEmpty()) {
+                            viewModel.sendMessage(trimmed, executor)
+                            inputText = ""
+                        }
+                    },
+                    enabled = viewModel.isConnected && !viewModel.isConnecting,
+                    isConnecting = viewModel.isConnecting,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
             }
         }
     }
@@ -528,12 +531,13 @@ private fun ComposerBar(
     onSendClick: () -> Unit,
     enabled: Boolean,
     isConnecting: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         color = Color(0xEE0C1220),
         border = BorderStroke(1.dp, BorderTint),
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .imePadding(),
