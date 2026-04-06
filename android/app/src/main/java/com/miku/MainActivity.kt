@@ -171,7 +171,7 @@ fun ChatScreen(executor: AutomationExecutor) {
 
     LaunchedEffect(viewModel.messages.size) {
         if (viewModel.messages.isNotEmpty()) {
-            listState.animateScrollToItem(viewModel.messages.size - 1)
+            listState.animateScrollToItem(viewModel.messages.size)
         }
     }
 
