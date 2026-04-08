@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import java.net.SocketTimeoutException
 import kotlinx.coroutines.launch
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -74,7 +75,14 @@ class ChatViewModel : ViewModel() {
                     addMessage("⚡ ${action.type}: $result", false)
                 }
             } catch (e: Exception) {
-                addMessage("❌ Error: ${e.message}", false)
+                if (e is SocketTimeoutException) {
+                    addMessage(
+                        "⏱️ Request timeout. Server agent terlalu lama merespons. Coba ulangi atau cek endpoint sedang sehat.",
+                        false
+                    )
+                } else {
+                    addMessage("❌ Error: ${e.message}", false)
+                }
             }
         }
     }

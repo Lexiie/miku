@@ -1,5 +1,6 @@
 import { logger, type Route, type RouteRequest, type RouteResponse } from "@elizaos/core";
-import { parseAndroidCommand, type AndroidChatRequest } from "./parser";
+import { type AndroidChatRequest } from "./parser";
+import { buildChatResponse } from "./conversation";
 
 function readChatRequest(body: unknown): AndroidChatRequest | null {
   if (!body || typeof body !== "object") {
@@ -28,10 +29,10 @@ async function handleChat(req: RouteRequest, res: RouteResponse) {
   }
 
   try {
-    const response = parseAndroidCommand(chatRequest.text);
+    const response = await buildChatResponse(chatRequest.text);
     res.json(response);
   } catch (error) {
-    logger.error({ error }, "Failed to parse Android automation request");
+    logger.error({ error }, "Failed to handle Android chat request");
     res.status(500).json({
       text: "Error processing request",
       actions: [],

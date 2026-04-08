@@ -59,6 +59,30 @@ function extractCommandTarget(text: string, command: string): string | null {
   return match[1].trim().replace(/[.!?]+$/, "") || null;
 }
 
+function extractAppTarget(text: string, command: "open" | "uninstall"): string | null {
+  const rawTarget = extractCommandTarget(text, command);
+  if (!rawTarget) {
+    return null;
+  }
+
+  const cleaned = rawTarget.trim();
+  if (!cleaned) {
+    return null;
+  }
+
+  // Accept "open app youtube", but ignore prefix-only targets like "open app".
+  const strippedPrefix = cleaned.replace(/^(?:app|apk|application|aplikasi)\s+/i, "").trim();
+  if (strippedPrefix.length > 0) {
+    return strippedPrefix;
+  }
+
+  if (/^(?:app|apk|application|aplikasi)$/i.test(cleaned)) {
+    return null;
+  }
+
+  return cleaned;
+}
+
 function extractQuotedOrTrailingText(text: string, patterns: RegExp[]): string | null {
   for (const pattern of patterns) {
     const match = text.match(pattern);
@@ -214,6 +238,32 @@ function buildSummary(actions: AndroidAction[]): string {
   return messages.join(". ");
 }
 
+function buildConversationalFallback(text: string): string {
+  const lower = text.toLowerCase();
+
+  if (/(^|\b)(hi|hello|hey|yo|halo|hai)(\b|$)/.test(lower)) {
+    return "Hey! I can chat and also run Android actions when your message includes a command.";
+  }
+
+  if (lower.includes("how are you")) {
+    return "I'm doing great and ready to help. Ask anything, or give me an Android command to execute.";
+  }
+
+  if (lower.includes("who are you") || lower.includes("what are you")) {
+    return "I'm Miku, your Android assistant. I can chat normally, and trigger native actions for commands like setting alarms, opening apps, calls, SMS, and more.";
+  }
+
+  if (lower.includes("thanks") || lower.includes("thank you")) {
+    return "You're welcome. If you want, I can also execute a command right away.";
+  }
+
+  if (lower.includes("help") || lower.includes("what can you do")) {
+    return "I can chat normally. For Android automation, try: set alarm for 7 AM, open Spotify, call +1 555 0100, turn on flashlight.";
+  }
+
+  return "Got it. I can chat with you, and I'll only trigger Android actions when your message contains a supported command.";
+}
+
 export function parseAndroidCommand(text: string): AndroidChatResponse {
   const originalText = text.trim();
   const lowerText = originalText.toLowerCase();
@@ -361,7 +411,7 @@ export function parseAndroidCommand(text: string): AndroidChatResponse {
     });
   }
 
-  const appToOpen = extractCommandTarget(originalText, "open");
+  const appToOpen = extractAppTarget(originalText, "open");
   if (appToOpen) {
     pushAction(actions, {
       type: "OPEN_APP",
@@ -369,7 +419,7 @@ export function parseAndroidCommand(text: string): AndroidChatResponse {
     });
   }
 
-  const appToUninstall = extractCommandTarget(originalText, "uninstall");
+  const appToUninstall = extractAppTarget(originalText, "uninstall");
   if (appToUninstall) {
     pushAction(actions, {
       type: "UNINSTALL_APP",
@@ -416,7 +466,7 @@ export function parseAndroidCommand(text: string): AndroidChatResponse {
   }
 
   return {
-    text: buildSummary(actions),
+    text: actions.length === 0 ? buildConversationalFallback(originalText) : buildSummary(actions),
     actions,
   };
 }

@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { parseAndroidCommand } from "./parser.ts";
+import { buildChatResponse } from "./conversation.ts";
 
 const port = Number.parseInt(process.env.SERVER_PORT ?? "3000", 10) || 3000;
 
@@ -69,7 +69,7 @@ const server = createServer(async (req, res) => {
         return;
       }
 
-      const response = parseAndroidCommand(body.text);
+      const response = await buildChatResponse(body.text);
       sendJson(res, 200, response);
       return;
     } catch (error) {

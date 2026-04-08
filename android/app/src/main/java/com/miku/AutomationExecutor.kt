@@ -127,18 +127,32 @@ class AutomationExecutor(private val context: Context) {
 
     private fun resolveInstalledPackage(appName: String): String? {
         val pm = context.packageManager
-        val query = appName.trim().lowercase(Locale.getDefault())
+        val primary = appName.trim()
+        val stripped = primary.replace(Regex("^(app|apk|aplikasi)\\s+", RegexOption.IGNORE_CASE), "").trim()
+        val candidates = listOf(primary, stripped)
+            .filter { it.isNotBlank() }
+            .distinct()
 
-        val directPackage = pm.getLaunchIntentForPackage(appName)?.component?.packageName
-        if (directPackage != null) {
-            return directPackage
+        for (candidate in candidates) {
+            val directPackage = pm.getLaunchIntentForPackage(candidate)?.component?.packageName
+            if (directPackage != null) {
+                return directPackage
+            }
         }
 
         val installed = pm.getInstalledApplications(PackageManager.MATCH_DISABLED_COMPONENTS)
-        return installed.firstOrNull { appInfo ->
-            val label = pm.getApplicationLabel(appInfo).toString().lowercase(Locale.getDefault())
-            label.contains(query) || appInfo.packageName.lowercase(Locale.getDefault()).contains(query)
-        }?.packageName
+        for (candidate in candidates) {
+            val query = candidate.lowercase(Locale.getDefault())
+            val matched = installed.firstOrNull { appInfo ->
+                val label = pm.getApplicationLabel(appInfo).toString().lowercase(Locale.getDefault())
+                label.contains(query) || appInfo.packageName.lowercase(Locale.getDefault()).contains(query)
+            }
+            if (matched != null) {
+                return matched.packageName
+            }
+        }
+
+        return null
     }
 
     private fun setAlarm(params: Map<String, Any>): String {
