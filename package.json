@@ -15,8 +15,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "start": "elizaos start",
-    "dev": "elizaos dev"
+    "start": "node --experimental-strip-types ./src/server.ts",
+    "dev": "node --watch --experimental-strip-types ./src/server.ts"
   },
   "dependencies": {
     "@elizaos/core": "^1.0.0",
