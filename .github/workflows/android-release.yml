@@ -47,13 +47,35 @@ jobs:
           name: android-release-apk
           path: app-release.apk
 
+      - name: Read Android version
+        id: android-version
+        run: |
+          version_name=$(sed -n 's/.*versionName = "\([^"]*\)"/\1/p' android/app/build.gradle.kts | head -n 1)
+          version_code=$(sed -n 's/.*versionCode = \([0-9][0-9]*\).*/\1/p' android/app/build.gradle.kts | head -n 1)
+
+          test -n "$version_name" || {
+            echo "Unable to determine Android versionName";
+            exit 1;
+          }
+
+          test -n "$version_code" || {
+            echo "Unable to determine Android versionCode";
+            exit 1;
+          }
+
+          echo "version_name=$version_name" >> "$GITHUB_OUTPUT"
+          echo "version_code=$version_code" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: android-v${{ github.run_number }}
-          name: Android Release v${{ github.run_number }}
+          tag_name: android-v${{ steps.android-version.outputs.version_name }}
+          name: Android Release v${{ steps.android-version.outputs.version_name }}
           files: app-release.apk
           generate_release_notes: true
+          append_body: true
+          body: |
+            Android versionCode: ${{ steps.android-version.outputs.version_code }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
