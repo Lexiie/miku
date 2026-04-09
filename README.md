@@ -1,4 +1,6 @@
-# Miku 🤖📱
+# Miku
+
+![Miku](assets/hero.png)
 
 [![Build Release APK](https://github.com/Lexiie/miku/actions/workflows/android-release.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/android-release.yml)
 [![Build Debug APK](https://github.com/Lexiie/miku/actions/workflows/build-debug-apk.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/build-debug-apk.yml)
@@ -63,51 +65,7 @@ Built on ElizaOS with decentralized inference, Miku bridges conversational AI wi
 
 Miku uses a **hybrid client-server architecture** where intelligence lives remotely and execution happens locally:
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                     ANDROID DEVICE                          │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  User Input (Text/Voice)                             │  │
-│  │  "Set alarm for 7 AM"                                │  │
-│  └───────────────────────────┬───────────────────────────┘  │
-│                              │ HTTP POST                     │
-│                              ▼                               │
-└──────────────────────────────┼──────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│              NOSANA DECENTRALIZED COMPUTE                   │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  ElizaOS Agent + Qwen3.5-27B                         │  │
-│  │  ┌─────────────────────────────────────────────────┐ │  │
-│  │  │ Intent Parser                                   │ │  │
-│  │  │ • Extract action type                           │ │  │
-│  │  │ • Extract parameters                            │ │  │
-│  │  │ • Generate structured JSON                      │ │  │
-│  │  └─────────────────────────────────────────────────┘ │  │
-│  └───────────────────────────┬───────────────────────────┘  │
-│                              │ JSON Response                 │
-│                              ▼                               │
-└──────────────────────────────┼──────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     ANDROID DEVICE                          │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  AutomationExecutor                                  │  │
-│  │  {                                                   │  │
-│  │    "type": "SET_ALARM",                             │  │
-│  │    "params": {"hour": 7, "minute": 0}               │  │
-│  │  }                                                   │  │
-│  └───────────────────────────┬───────────────────────────┘  │
-│                              │                               │
-│                              ▼                               │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │  Intent(AlarmClock.ACTION_SET_ALARM)                 │  │
-│  │  ✅ Native Android API Executed                      │  │
-│  └───────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────────┘
-```
+![diagram](assets/diagram.png)
 
 **Why This Architecture?**
 
