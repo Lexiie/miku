@@ -2,6 +2,9 @@ import { logger, type Route, type RouteRequest, type RouteResponse } from "@eliz
 import { type AndroidChatRequest } from "./parser";
 import { buildChatResponse } from "./conversation";
 
+/**
+ * Validates and narrows incoming route body to the chat request contract used by the parser.
+ */
 function readChatRequest(body: unknown): AndroidChatRequest | null {
   if (!body || typeof body !== "object") {
     return null;
@@ -18,6 +21,14 @@ function readChatRequest(body: unknown): AndroidChatRequest | null {
   };
 }
 
+/**
+ * Main API handler for `/api/chat`.
+ *
+ * Flow:
+ * 1. Validate request shape.
+ * 2. Build parser-first response (with LLM conversational fallback when no action matches).
+ * 3. Return stable error payload shape on failure.
+ */
 async function handleChat(req: RouteRequest, res: RouteResponse) {
   const chatRequest = readChatRequest(req.body);
   if (!chatRequest) {
@@ -40,6 +51,9 @@ async function handleChat(req: RouteRequest, res: RouteResponse) {
   }
 }
 
+/**
+ * Lightweight health payload used by both `/health` and `/api/health`.
+ */
 function handleHealth(_req: RouteRequest, res: RouteResponse) {
   res.json({
     status: "ok",
@@ -47,6 +61,9 @@ function handleHealth(_req: RouteRequest, res: RouteResponse) {
   });
 }
 
+/**
+ * Plugin routes exported to ElizaOS runtime.
+ */
 export const androidApiRoutes: Route[] = [
   {
     name: "android-chat",

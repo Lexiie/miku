@@ -10,11 +10,18 @@ import {
 } from "@elizaos/core";
 import { parseAndroidCommand } from "../parser";
 
+/**
+ * Action adapter that lets ElizaOS invoke the parser directly.
+ *
+ * API routes use a parser-first orchestration path, but this action keeps compatibility
+ * for environments that execute through the Eliza action pipeline.
+ */
 export const androidAutomationAction: Action = {
   name: "ANDROID_AUTOMATION",
   similes: ["AUTOMATE", "CONTROL_DEVICE", "EXECUTE_ACTION"],
   description: "Parse natural language commands into structured Android automation actions",
 
+  // Only accept non-empty text messages for parsing.
   validate: async (_runtime: IAgentRuntime, message: Memory, _state?: State) => {
     return typeof message.content.text === "string" && message.content.text.trim().length > 0;
   },
@@ -29,6 +36,7 @@ export const androidAutomationAction: Action = {
     const text = typeof message.content.text === "string" ? message.content.text : "";
     const response = parseAndroidCommand(text);
 
+    // Callback payload mirrors parser output so downstream tools can inspect action types.
     const responseContent: Content = {
       text: JSON.stringify(response),
       actions: response.actions.map((action) => action.type),

@@ -10,6 +10,9 @@ import kotlinx.coroutines.launch
 import okhttp3.ResponseBody
 import retrofit2.Response
 
+/**
+ * UI state holder for connection lifecycle, message history, and action execution flow.
+ */
 class ChatViewModel : ViewModel() {
     var messages by mutableStateOf(listOf<Message>())
         private set
@@ -22,6 +25,7 @@ class ChatViewModel : ViewModel() {
     
     var agentUrl by mutableStateOf("")
     
+    /** Attempts backend connection and runs health checks before enabling chat. */
     fun connect(url: String) {
         val normalizedUrl = ApiClient.normalizeBaseUrl(url)
         agentUrl = normalizedUrl
@@ -49,12 +53,14 @@ class ChatViewModel : ViewModel() {
         }
     }
     
+    /** Resets connection state without clearing chat history. */
     fun disconnect() {
         isConnected = false
         isConnecting = false
         addMessage("❌ Disconnected", false)
     }
     
+    /** Sends user message, renders assistant text, and executes returned Android actions. */
     fun sendMessage(text: String, executor: AutomationExecutor) {
         addMessage(text, true)
         
@@ -87,10 +93,17 @@ class ChatViewModel : ViewModel() {
         }
     }
     
+    /** Appends message to immutable list so Compose recomposes predictably. */
     private fun addMessage(text: String, isUser: Boolean) {
         messages = messages + Message(text, isUser)
     }
 
+    /**
+     * Tries both health endpoints and returns:
+     * - null for healthy response
+     * - HTTP status code for non-2xx responses
+     * - throws transport error when no endpoint returned HTTP.
+     */
     private suspend fun checkHealth(api: AgentApi): Int? {
         val endpoints: List<suspend () -> Response<ResponseBody>> = listOf(
             { api.health() },
@@ -125,6 +138,7 @@ class ChatViewModel : ViewModel() {
         return 0
     }
 
+    /** Ensures Retrofit response/error bodies are always closed. */
     private inline fun <T> Response<ResponseBody>.useBody(block: () -> T): T {
         return try {
             block()

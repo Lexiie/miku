@@ -3,6 +3,9 @@ import { androidAutomationAction } from "./actions/androidAutomation";
 import { androidApiRoutes } from "./api";
 import { character } from "./character";
 
+/**
+ * Plugin surface exposed to ElizaOS.
+ */
 export const androidPlugin: Plugin = {
   name: "android-automation",
   description: "Android device automation plugin",
@@ -12,11 +15,17 @@ export const androidPlugin: Plugin = {
   providers: []
 };
 
+/**
+ * Single project agent wiring for this repo.
+ */
 export const projectAgent: ProjectAgent = {
   character,
   plugins: [androidPlugin]
 };
 
+/**
+ * Project entrypoint consumed by ElizaOS CLI/runtime.
+ */
 const project: Project = {
   agents: [projectAgent]
 };

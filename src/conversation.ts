@@ -1,14 +1,20 @@
 import { parseAndroidCommand, type AndroidChatResponse } from "./parser.ts";
 
+// Shared assistant instruction for conversational fallback providers.
 const SYSTEM_PROMPT =
   "You are Miku, a concise and helpful mobile assistant. Reply naturally for normal conversation. Keep replies short (1-3 sentences). Do not claim you executed Android actions unless explicitly provided by the system.";
+// Total budget for sequential provider fallback.
 const TOTAL_FALLBACK_TIMEOUT_MS = 15000;
+// Reserve a minimum budget for Gemini so OpenAI timeout cannot starve fallback.
 const GEMINI_FALLBACK_RESERVE_MS = 4000;
 
 function normalizeBaseUrl(url: string): string {
   return url.endsWith("/") ? url.slice(0, -1) : url;
 }
 
+/**
+ * Fetch wrapper with per-request timeout guard.
+ */
 async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 15000): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -23,6 +29,9 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = 1500
   }
 }
 
+/**
+ * OpenAI-compatible chat completion call used for regular conversation fallback.
+ */
 async function fetchOpenAIReply(userText: string, timeoutMs: number): Promise<string | null> {
   if (timeoutMs <= 0) {
     return null;
@@ -87,6 +96,9 @@ async function fetchOpenAIReply(userText: string, timeoutMs: number): Promise<st
   return null;
 }
 
+/**
+ * Gemini fallback provider.
+ */
 async function fetchGeminiReply(userText: string, timeoutMs: number): Promise<string | null> {
   if (timeoutMs <= 0) {
     return null;
@@ -157,6 +169,9 @@ async function fetchGeminiReply(userText: string, timeoutMs: number): Promise<st
   return text || null;
 }
 
+/**
+ * Provider fallback chain: OpenAI-compatible first, then Gemini.
+ */
 async function generateConversationalReply(userText: string): Promise<string | null> {
   const startedAt = Date.now();
   const remainingBudget = () => TOTAL_FALLBACK_TIMEOUT_MS - (Date.now() - startedAt);
@@ -183,6 +198,13 @@ async function generateConversationalReply(userText: string): Promise<string | n
   return null;
 }
 
+/**
+ * Unified chat response builder.
+ *
+ * Rules:
+ * - Parser runs first and exclusively gates automation execution.
+ * - LLM is used only when parser emits no actions.
+ */
 export async function buildChatResponse(text: string): Promise<AndroidChatResponse> {
   const trimmedText = text.trim();
   const parsed = parseAndroidCommand(trimmedText);

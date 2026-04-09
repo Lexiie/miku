@@ -8,12 +8,18 @@ type ChatRequest = {
   userId?: unknown;
 };
 
+/**
+ * CORS headers shared by every response path.
+ */
 function setCorsHeaders(res: ServerResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
+/**
+ * Writes a JSON response with consistent headers and encoding.
+ */
 function sendJson(res: ServerResponse, statusCode: number, payload: unknown) {
   setCorsHeaders(res);
   res.statusCode = statusCode;
@@ -21,6 +27,9 @@ function sendJson(res: ServerResponse, statusCode: number, payload: unknown) {
   res.end(JSON.stringify(payload));
 }
 
+/**
+ * Reads and parses JSON body for simple standalone server mode.
+ */
 async function readJsonBody(req: IncomingMessage): Promise<ChatRequest> {
   const chunks: Buffer[] = [];
 
@@ -36,6 +45,9 @@ async function readJsonBody(req: IncomingMessage): Promise<ChatRequest> {
   return JSON.parse(raw) as ChatRequest;
 }
 
+/**
+ * Minimal standalone HTTP server used by local start/dev scripts.
+ */
 const server = createServer(async (req, res) => {
   const method = req.method ?? "GET";
   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);

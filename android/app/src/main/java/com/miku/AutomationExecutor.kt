@@ -29,6 +29,9 @@ import java.time.Instant
 import java.util.Locale
 import java.util.TimeZone
 
+/**
+ * Executes backend-provided automation actions through native Android APIs.
+ */
 class AutomationExecutor(private val context: Context) {
     companion object {
         const val NOTIFICATION_CHANNEL_ID = "miku_default"
@@ -39,6 +42,7 @@ class AutomationExecutor(private val context: Context) {
         ensureNotificationChannel()
     }
 
+    /** Dispatches action by type and returns user-facing status text. */
     fun execute(action: AndroidAction, onUpdate: ((String) -> Unit)? = null): String {
         return try {
             when (action.type) {
@@ -66,6 +70,7 @@ class AutomationExecutor(private val context: Context) {
         }
     }
 
+    /** Ensures notification channel exists before posting reminders/alerts. */
     private fun ensureNotificationChannel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return
@@ -82,6 +87,7 @@ class AutomationExecutor(private val context: Context) {
         manager.createNotificationChannel(channel)
     }
 
+    /** Requests runtime permissions and returns true when already granted. */
     private fun requestPermission(vararg permissions: String): Boolean {
         val denied = permissions.filter {
             ActivityCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
@@ -96,6 +102,7 @@ class AutomationExecutor(private val context: Context) {
         return false
     }
 
+    /** Starts intent safely from Activity or application context. */
     private fun launchIntent(intent: Intent) {
         if (context !is Activity) {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -125,6 +132,12 @@ class AutomationExecutor(private val context: Context) {
         return params[key] as? String
     }
 
+    /**
+     * Resolves package name from user-visible app label or package text.
+     *
+     * It also strips leading helper words (`app`, `apk`, `aplikasi`) so
+     * commands like `open app spotify` still resolve correctly.
+     */
     private fun resolveInstalledPackage(appName: String): String? {
         val pm = context.packageManager
         val primary = appName.trim()
@@ -155,6 +168,7 @@ class AutomationExecutor(private val context: Context) {
         return null
     }
 
+    /** Creates an alarm via AlarmClock intent. */
     private fun setAlarm(params: Map<String, Any>): String {
         val hour = intParam(params, "hour", 7).coerceIn(0, 23)
         val minute = intParam(params, "minute", 0).coerceIn(0, 59)
@@ -170,6 +184,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Alarm set for ${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}"
     }
 
+    /** Creates a timer via AlarmClock intent. */
     private fun setTimer(params: Map<String, Any>): String {
         val durationMs = longParam(params, "duration") ?: 300000L
         val intent = Intent(AlarmClock.ACTION_SET_TIMER).apply {
@@ -180,6 +195,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Timer set"
     }
 
+    /** Inserts a calendar event with optional ISO start/end times. */
     private fun addCalendar(params: Map<String, Any>): String {
         if (!requestPermission(Manifest.permission.WRITE_CALENDAR)) {
             return "🔐 Calendar permission requested"
@@ -203,6 +219,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Event added"
     }
 
+    /** Lists calendar event titles for today/tomorrow. */
     private fun getEvents(params: Map<String, Any>): String {
         if (!requestPermission(Manifest.permission.READ_CALENDAR)) {
             return "🔐 Calendar permission requested"
@@ -244,6 +261,7 @@ class AutomationExecutor(private val context: Context) {
         }
     }
 
+    /** Sends an SMS message directly using platform SmsManager. */
     private fun sendSms(params: Map<String, Any>): String {
         if (!requestPermission(Manifest.permission.SEND_SMS)) {
             return "🔐 SMS permission requested"
@@ -256,6 +274,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ SMS sent"
     }
 
+    /** Starts a direct call intent. */
     private fun makeCall(params: Map<String, Any>): String {
         if (!requestPermission(Manifest.permission.CALL_PHONE)) {
             return "🔐 Call permission requested"
@@ -269,6 +288,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Calling"
     }
 
+    /** Opens an installed app by package resolution. */
     private fun openApp(params: Map<String, Any>): String {
         val appName = stringParam(params, "appName") ?: return "❌ App name missing"
         val packageName = resolveInstalledPackage(appName) ?: return "❌ App not found"
@@ -277,6 +297,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ App opened"
     }
 
+    /** Opens system uninstall flow for the selected app. */
     private fun uninstallApp(params: Map<String, Any>): String {
         val appName = stringParam(params, "appName") ?: return "❌ App name missing"
         val packageName = resolveInstalledPackage(appName) ?: return "❌ App not found"
@@ -285,6 +306,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Uninstall initiated"
     }
 
+    /** Toggles WiFi where allowed; opens settings panel on newer Android versions. */
     private fun toggleWifi(params: Map<String, Any>): String {
         val enable = params["enable"] as? Boolean ?: true
 
@@ -300,6 +322,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ WiFi ${if (enable) "enabled" else "disabled"}"
     }
 
+    /** Toggles Bluetooth where allowed; opens settings on restricted versions. */
     private fun toggleBluetooth(params: Map<String, Any>): String {
         if (!requestPermission(Manifest.permission.BLUETOOTH_CONNECT)) {
             return "🔐 Bluetooth permission requested"
@@ -319,6 +342,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Bluetooth ${if (enable) "enabled" else "disabled"}"
     }
 
+    /** Adjusts system brightness percentage. */
     private fun setBrightness(params: Map<String, Any>): String {
         if (!Settings.System.canWrite(context)) {
             val intent = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${context.packageName}"))
@@ -332,6 +356,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Brightness set to $level%"
     }
 
+    /** Controls camera torch as flashlight. */
     private fun toggleFlashlight(params: Map<String, Any>): String {
         if (!requestPermission(Manifest.permission.CAMERA)) {
             return "🔐 Camera permission requested"
@@ -344,6 +369,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Flashlight ${if (enable) "on" else "off"}"
     }
 
+    /** Switches ringer mode (normal/silent/vibrate). */
     private fun setRingerMode(params: Map<String, Any>): String {
         val mode = stringParam(params, "mode") ?: "normal"
         val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
@@ -355,6 +381,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Ringer mode: $mode"
     }
 
+    /** Sets stream volume by percentage. */
     private fun setVolume(params: Map<String, Any>): String {
         val level = intParam(params, "level", 50).coerceIn(0, 100)
         val streamType = when ((stringParam(params, "stream") ?: "music").lowercase(Locale.getDefault())) {
@@ -370,6 +397,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Volume set to $level%"
     }
 
+    /** Posts a local notification on the app channel. */
     private fun sendNotification(params: Map<String, Any>): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !requestPermission(Manifest.permission.POST_NOTIFICATIONS)) {
             return "🔐 Notification permission requested"
@@ -389,6 +417,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Notification sent"
     }
 
+    /** Schedules an exact alarm that dispatches [ReminderReceiver]. */
     private fun setReminder(params: Map<String, Any>): String {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -418,6 +447,7 @@ class AutomationExecutor(private val context: Context) {
         return "✅ Reminder scheduled"
     }
 
+    /** Returns immediately and reports location asynchronously via callback updates. */
     private fun getLocation(onUpdate: ((String) -> Unit)?): String {
         if (!requestPermission(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)) {
             return "🔐 Location permission requested"

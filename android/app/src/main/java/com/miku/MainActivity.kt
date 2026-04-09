@@ -151,6 +151,7 @@ private enum class BubbleStyle {
     Success,
 }
 
+/** Android entrypoint for the Compose chat client. */
 class MainActivity : ComponentActivity() {
     private lateinit var executor: AutomationExecutor
 
@@ -169,6 +170,9 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Root screen for connection setup, message timeline, system status cards, and composer.
+ */
 @Composable
 fun ChatScreen(executor: AutomationExecutor) {
     val viewModel: ChatViewModel = viewModel()
@@ -190,6 +194,7 @@ fun ChatScreen(executor: AutomationExecutor) {
         )
     }
 
+    // Voice dictation populates composer and optionally sends immediately when connected.
     val speechLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         val spokenText = result.data
             ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
@@ -217,6 +222,7 @@ fun ChatScreen(executor: AutomationExecutor) {
         }
     }
 
+    // Keep latest message visible as status/action updates arrive.
     LaunchedEffect(viewModel.messages.size) {
         if (viewModel.messages.isNotEmpty()) {
             listState.animateScrollToItem(viewModel.messages.size)
@@ -235,6 +241,7 @@ fun ChatScreen(executor: AutomationExecutor) {
         }
     }
 
+    // Dynamic inset prevents the bottom composer from covering recent messages.
     val composerBottomInset = with(density) { composerHeightPx.toDp() }
 
     Box(
@@ -405,6 +412,7 @@ private fun MikuTopBar(
     isConnected: Boolean,
     isConnecting: Boolean,
 ) {
+    // Top bar intentionally stays compact; detailed endpoint controls live below.
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent,
@@ -446,6 +454,7 @@ private fun MikuTopBar(
     )
 }
 
+/** Compact connection status indicator used in app bar. */
 @Composable
 private fun StatusChip(
     isConnected: Boolean,
@@ -490,6 +499,11 @@ private fun StatusChip(
     }
 }
 
+/**
+ * Endpoint setup panel.
+ *
+ * Connected state collapses into a summary row and can be expanded for editing.
+ */
 @Composable
 private fun ConnectionCard(
     endpointUrl: String,
@@ -637,6 +651,7 @@ private fun ConnectionCard(
     }
 }
 
+/** Command shortcuts shown only while connected. */
 @Composable
 private fun QuickActionsRow(
     actions: List<QuickAction>,
@@ -673,6 +688,7 @@ private fun QuickActionsRow(
     }
 }
 
+/** Minimal empty state to keep chat area visually dominant. */
 @Composable
 private fun EmptyStateCard(
     modifier: Modifier = Modifier,
@@ -721,6 +737,7 @@ private fun EmptyStateCard(
     }
 }
 
+/** Dedicated non-chat card for actionable system failures/timeouts. */
 @Composable
 private fun SystemStatusCard(
     status: SystemStatus,
@@ -787,6 +804,7 @@ private fun SystemStatusCard(
     }
 }
 
+/** Bottom-anchored composer with input, voice, and send actions. */
 @Composable
 private fun BottomComposer(
     inputText: String,
@@ -885,6 +903,7 @@ private fun BottomComposer(
     }
 }
 
+/** Chat bubble renderer with simplified visual variants. */
 @Composable
 private fun ChatMessageItem(message: Message) {
     val bubbleStyle = resolveBubbleStyle(message)
@@ -935,6 +954,7 @@ private fun ChatMessageItem(message: Message) {
     }
 }
 
+/** Distinguishes agent success updates from regular assistant text. */
 private fun resolveBubbleStyle(message: Message): BubbleStyle {
     if (message.isUser) {
         return BubbleStyle.User
@@ -948,6 +968,7 @@ private fun resolveBubbleStyle(message: Message): BubbleStyle {
     }
 }
 
+/** Maps backend/system error strings into structured UI status cards. */
 private fun parseSystemStatus(message: Message): SystemStatus? {
     if (message.isUser) {
         return null
@@ -988,6 +1009,7 @@ private fun parseSystemStatus(message: Message): SystemStatus? {
     }
 }
 
+/** Finds most recent user command before a given message index for retry actions. */
 private fun lastUserCommand(messages: List<Message>, fromIndex: Int): String {
     for (index in (fromIndex - 1) downTo 0) {
         val candidate = messages[index]
@@ -998,6 +1020,7 @@ private fun lastUserCommand(messages: List<Message>, fromIndex: Int): String {
     return ""
 }
 
+/** Consistent HH:mm timestamp formatting for chat messages. */
 private fun formatTimestamp(timestamp: Long): String {
     return SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(timestamp))
 }

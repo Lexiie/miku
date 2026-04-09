@@ -1,3 +1,6 @@
+/**
+ * Supported Android automation actions that can be executed on device.
+ */
 export type AndroidActionType =
   | "SET_ALARM"
   | "SET_TIMER"
@@ -35,20 +38,32 @@ export interface AndroidChatResponse {
 const SUPPORTED_CAPABILITIES =
   "I can help with alarms, timers, calendar events, SMS, calls, apps, WiFi, Bluetooth, flashlight, brightness, volume, reminders, notifications, and location.";
 
+/**
+ * Numeric clamp helper used for bounded settings like hour/minute/volume.
+ */
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
+/**
+ * Extracts first standalone number in text (used by brightness/volume heuristics).
+ */
 function extractNumber(text: string): number | null {
   const match = text.match(/\b(\d{1,3})\b/);
   return match ? Number.parseInt(match[1], 10) : null;
 }
 
+/**
+ * Extracts phone-like input and normalizes spaces/dashes.
+ */
 function extractPhoneNumber(text: string): string | null {
   const match = text.match(/\+?[\d\s-]{10,}/);
   return match ? match[0].replace(/[\s-]+/g, "") : null;
 }
 
+/**
+ * Pulls command target for patterns like `open spotify` / `uninstall app`.
+ */
 function extractCommandTarget(text: string, command: string): string | null {
   const regex = new RegExp(`(?:^|\\b(?:and|then)\\b)\\s*${command}\\s+(.+?)(?:\\s+\\b(?:and|then)\\b|$)`, "i");
   const match = text.match(regex);
@@ -59,6 +74,9 @@ function extractCommandTarget(text: string, command: string): string | null {
   return match[1].trim().replace(/[.!?]+$/, "") || null;
 }
 
+/**
+ * Normalizes app target while preventing prefix-only matches (e.g. `open app`).
+ */
 function extractAppTarget(text: string, command: "open" | "uninstall"): string | null {
   const rawTarget = extractCommandTarget(text, command);
   if (!rawTarget) {
@@ -83,6 +101,9 @@ function extractAppTarget(text: string, command: "open" | "uninstall"): string |
   return cleaned;
 }
 
+/**
+ * Tries multiple regexes and returns the first captured text payload.
+ */
 function extractQuotedOrTrailingText(text: string, patterns: RegExp[]): string | null {
   for (const pattern of patterns) {
     const match = text.match(pattern);
@@ -94,6 +115,9 @@ function extractQuotedOrTrailingText(text: string, patterns: RegExp[]): string |
   return null;
 }
 
+/**
+ * Converts human duration phrases into milliseconds.
+ */
 function extractDurationMs(text: string): number | null {
   const durationPattern = /(\d+)\s*(hours?|hrs?|hr|minutes?|mins?|min|seconds?|secs?|sec)/gi;
   let totalMs = 0;
@@ -116,6 +140,9 @@ function extractDurationMs(text: string): number | null {
   return matched ? totalMs : null;
 }
 
+/**
+ * Minimal date context parser; currently only handles `tomorrow` offset.
+ */
 function parseDateContext(text: string): Date {
   const now = new Date();
   const date = new Date(now);
@@ -127,6 +154,9 @@ function parseDateContext(text: string): Date {
   return date;
 }
 
+/**
+ * Parses clock expressions and returns 24h hour/minute.
+ */
 function extractTime(text: string): { hour: number; minute: number } | null {
   const match = text.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
   if (!match) {
@@ -152,6 +182,9 @@ function extractTime(text: string): { hour: number; minute: number } | null {
   return { hour: clamp(hour, 0, 23), minute: clamp(minute, 0, 59) };
 }
 
+/**
+ * Builds ISO datetime from parsed language hints with fallback time.
+ */
 function buildIsoDate(text: string, fallbackHour: number, fallbackMinute: number): string {
   const base = parseDateContext(text);
   const time = extractTime(text) ?? { hour: fallbackHour, minute: fallbackMinute };
@@ -160,6 +193,9 @@ function buildIsoDate(text: string, fallbackHour: number, fallbackMinute: number
   return base.toISOString();
 }
 
+/**
+ * Inserts action while skipping duplicate type+params pairs.
+ */
 function pushAction(actions: AndroidAction[], action: AndroidAction | null | undefined) {
   if (!action) {
     return;
@@ -174,6 +210,9 @@ function pushAction(actions: AndroidAction[], action: AndroidAction | null | und
   }
 }
 
+/**
+ * Infers boolean toggle from positive/negative hints.
+ */
 function inferToggleValue(text: string, positiveHints: string[], negativeHints: string[], defaultValue = true): boolean {
   if (negativeHints.some((hint) => text.includes(hint))) {
     return false;
@@ -186,6 +225,9 @@ function inferToggleValue(text: string, positiveHints: string[], negativeHints: 
   return defaultValue;
 }
 
+/**
+ * Builds human-readable summary for parsed actions.
+ */
 function buildSummary(actions: AndroidAction[]): string {
   if (actions.length === 0) {
     return SUPPORTED_CAPABILITIES;
@@ -238,6 +280,9 @@ function buildSummary(actions: AndroidAction[]): string {
   return messages.join(". ");
 }
 
+/**
+ * Lightweight non-LLM fallback text used when no action matches.
+ */
 function buildConversationalFallback(text: string): string {
   const lower = text.toLowerCase();
 
@@ -264,6 +309,11 @@ function buildConversationalFallback(text: string): string {
   return "Got it. I can chat with you, and I'll only trigger Android actions when your message contains a supported command.";
 }
 
+/**
+ * Parser-first command extractor.
+ *
+ * Returns zero or more executable Android actions and a user-facing text summary.
+ */
 export function parseAndroidCommand(text: string): AndroidChatResponse {
   const originalText = text.trim();
   const lowerText = originalText.toLowerCase();
@@ -465,6 +515,7 @@ export function parseAndroidCommand(text: string): AndroidChatResponse {
     });
   }
 
+  // Keep action execution strictly parser-gated.
   return {
     text: actions.length === 0 ? buildConversationalFallback(originalText) : buildSummary(actions),
     actions,

@@ -1,5 +1,11 @@
 import { type Character } from "@elizaos/core";
 
+/**
+ * Base character profile for ElizaOS runtime.
+ *
+ * This keeps model defaults and examples aligned with Android automation behavior,
+ * while route-level parser/conversation orchestration decides when actions are emitted.
+ */
 export const character: Character = {
   name: "Miku",
   username: "miku",
