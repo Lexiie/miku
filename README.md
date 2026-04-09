@@ -1,6 +1,6 @@
 # Miku
 
-![Miku](assets/hero.png)
+![Miku](assets/miku.png)
 
 [![Build Release APK](https://github.com/Lexiie/miku/actions/workflows/android-release.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/android-release.yml)
 [![Build Debug APK](https://github.com/Lexiie/miku/actions/workflows/build-debug-apk.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/build-debug-apk.yml)
