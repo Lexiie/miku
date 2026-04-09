@@ -2,6 +2,9 @@
 
 ![Miku](assets/miku.png)
 
+# Demo
+[watch demo](https://youtube.com/shorts/E8rhWCiAgkI?si=n0JTcMFXoQ3yQR9_)
+
 [![Build Release APK](https://github.com/Lexiie/miku/actions/workflows/android-release.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/android-release.yml)
 [![Build Debug APK](https://github.com/Lexiie/miku/actions/workflows/build-debug-apk.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/build-debug-apk.yml)
 [![Deploy Docker ElizaOS](https://github.com/Lexiie/miku/actions/workflows/deploy-docker-elizaos.yml/badge.svg)](https://github.com/Lexiie/miku/actions/workflows/deploy-docker-elizaos.yml)
