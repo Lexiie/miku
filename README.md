@@ -291,6 +291,25 @@ pnpm dev
 
 For local Ollama development, `.env.example` includes an example OpenAI-compatible setup.
 
+### Default Model Routing
+
+By default, Miku now uses a **Nosana OpenAI-compatible endpoint** with:
+
+- `MODEL_NAME=Qwen3.5-9B-FP8`
+- `OPENAI_API_URL=https://5i8frj7ann99bbw9gzpprvzj2esugg39hxbb4unypskq.node.k8s.prd.nos.ci/v1`
+
+For embeddings, `.env.example` also includes:
+
+- `OPENAI_EMBEDDING_URL=https://4yiccatpyxx773jtewo5ccwhw1s2hezq5pehndb6fcfq.node.k8s.prd.nos.ci/v1`
+- `OPENAI_EMBEDDING_MODEL=Qwen3-Embedding-0.6B`
+
+Conversation fallback order in `src/conversation.ts` is:
+
+1. OpenAI-compatible provider (Nosana/Qwen default)
+2. Gemini fallback (`GEMINI_API_KEY`) if primary provider is unavailable
+
+If both providers are unavailable, Miku keeps parser-only behavior for automation commands and skips conversational LLM replies.
+
 Agent runs on `http://localhost:3000`
 
 ### Android App Development

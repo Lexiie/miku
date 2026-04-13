@@ -42,8 +42,11 @@ async function fetchOpenAIReply(userText: string, timeoutMs: number): Promise<st
     return null;
   }
 
-  const baseUrl = normalizeBaseUrl(process.env.OPENAI_BASE_URL ?? "https://api.openai.com/v1");
-  const model = process.env.OPENAI_LARGE_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-4.1-mini";
+  const baseUrl = normalizeBaseUrl(
+    process.env.OPENAI_BASE_URL ?? process.env.OPENAI_API_URL ?? "https://api.openai.com/v1"
+  );
+  const model =
+    process.env.OPENAI_LARGE_MODEL ?? process.env.OPENAI_MODEL ?? process.env.MODEL_NAME ?? "Qwen3.5-9B-FP8";
 
   const response = await fetchWithTimeout(`${baseUrl}/chat/completions`, {
     method: "POST",

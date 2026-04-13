@@ -14,10 +14,10 @@ export const character: Character = {
     "@elizaos/plugin-openai"
   ],
   settings: {
-    OPENAI_SMALL_MODEL: "gemini-2.5-flash",
-    OPENAI_LARGE_MODEL: "gemini-2.5-flash",
-    OPENAI_EMBEDDING_MODEL: "gemini-embedding-001",
-    OPENAI_EMBEDDING_DIMENSIONS: "1536",
+    OPENAI_SMALL_MODEL: "Qwen3.5-9B-FP8",
+    OPENAI_LARGE_MODEL: "Qwen3.5-9B-FP8",
+    OPENAI_EMBEDDING_MODEL: "Qwen3-Embedding-0.6B",
+    OPENAI_EMBEDDING_DIMENSIONS: "1024",
     secrets: {}
   },
   system:
