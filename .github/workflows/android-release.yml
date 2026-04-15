@@ -49,6 +49,14 @@ jobs:
             exit 1
           }
 
+      - name: Validate keystore credentials
+        run: |
+          keytool -list \
+            -keystore android/app/keystore/release.jks \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" \
+            -keypass "$ANDROID_KEY_PASSWORD" >/dev/null
+
       - name: Build release APK
         working-directory: android
         env:
