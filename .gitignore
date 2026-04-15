@@ -23,6 +23,9 @@ dist/
 build/
 out/
 *.tsbuildinfo
+android/app/keystore/
+*.jks
+*.keystore
 
 # IDE
 .vscode/

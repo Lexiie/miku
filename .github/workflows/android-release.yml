@@ -14,6 +14,11 @@ jobs:
   build-release-apk:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
 
@@ -26,8 +31,31 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Validate signing secrets
+        run: |
+          for key in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!key}" ]; then
+              echo "Missing required secret: $key"
+              exit 1
+            fi
+          done
+
+      - name: Prepare signing keystore
+        run: |
+          mkdir -p android/app/keystore
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/keystore/release.jks
+          test -s android/app/keystore/release.jks || {
+            echo "Failed to generate release keystore"
+            exit 1
+          }
+
       - name: Build release APK
         working-directory: android
+        env:
+          RELEASE_STORE_FILE: keystore/release.jks
+          RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon --console=plain --stacktrace :app:assembleRelease
@@ -41,11 +69,24 @@ jobs:
           }
           cp "$apk_path" app-release.apk
 
+      - name: Verify APK signature
+        run: |
+          apksigner_bin=$(find "${ANDROID_HOME}/build-tools" -type f -name apksigner | sort | tail -n 1)
+          test -n "$apksigner_bin" || {
+            echo "apksigner not found in Android SDK build-tools"
+            exit 1
+          }
+          "$apksigner_bin" verify --verbose app-release.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-release-apk
           path: app-release.apk
+
+      - name: Cleanup signing keystore
+        if: always()
+        run: rm -f android/app/keystore/release.jks
 
       - name: Read Android version
         id: android-version
